@@ -13,19 +13,14 @@ import {
   IGetValueOption,
   IPainterOption
 } from '../../interface/Draw'
-import {
-  IEditorData,
-  IEditorOption,
-  IEditorResult,
-  ISetValueOption
-} from '../../interface/Editor'
+import { IEditorData, IEditorOption, IEditorResult, ISetValueOption } from '../../interface/Editor'
 import {
   IElement,
-  IElementMetrics,
   IElementFillRect,
+  IElementMetrics,
   IElementStyle,
-  ISpliceElementListOption,
-  IInsertElementListOption
+  IInsertElementListOption,
+  ISpliceElementListOption
 } from '../../interface/Element'
 import { IRow, IRowElement } from '../../interface/Row'
 import { deepClone, getUUID, nextTick } from '../../utils'
@@ -58,17 +53,11 @@ import { SubscriptParticle } from './particle/SubscriptParticle'
 import { SeparatorParticle } from './particle/SeparatorParticle'
 import { PageBreakParticle } from './particle/PageBreakParticle'
 import { Watermark } from './frame/Watermark'
-import {
-  EditorComponent,
-  EditorMode,
-  EditorZone,
-  PageMode,
-  PaperDirection,
-  WordBreak
-} from '../../dataset/enum/Editor'
+import { EditorComponent, EditorMode, EditorZone, PageMode, PaperDirection, WordBreak } from '../../dataset/enum/Editor'
 import { Control } from './control/Control'
 import {
   deleteSurroundElementList,
+  formatElementList,
   getIsBlockElement,
   getSlimCloneElementList,
   pickSurroundElementList,
@@ -77,11 +66,7 @@ import {
 import { CheckboxParticle } from './particle/CheckboxParticle'
 import { RadioParticle } from './particle/RadioParticle'
 import { DeepRequired, IPadding } from '../../interface/Common'
-import {
-  ControlComponent,
-  ControlIndentation
-} from '../../dataset/enum/Control'
-import { formatElementList } from '../../utils/element'
+import { ControlComponent, ControlIndentation } from '../../dataset/enum/Control'
 import { WorkerManager } from '../worker/WorkerManager'
 import { Previewer } from './particle/previewer/Previewer'
 import { DateParticle } from './particle/date/DateParticle'
@@ -92,10 +77,7 @@ import { I18n } from '../i18n/I18n'
 import { ImageObserver } from '../observer/ImageObserver'
 import { Zone } from '../zone/Zone'
 import { Footer } from './frame/Footer'
-import {
-  IMAGE_ELEMENT_TYPE,
-  TEXTLIKE_ELEMENT_TYPE
-} from '../../dataset/constant/Element'
+import { IMAGE_ELEMENT_TYPE, TEXTLIKE_ELEMENT_TYPE } from '../../dataset/constant/Element'
 import { ListParticle } from './particle/ListParticle'
 import { Placeholder } from './frame/Placeholder'
 import { EventBus } from '../event/eventbus/EventBus'
@@ -1440,8 +1422,18 @@ export class Draw {
               const nexTrList = nextElement.trList!.filter(
                 tr => !tr.pagingRepeat
               )
-              element.trList!.push(...nexTrList)
-              element.height! += nextElement.height!
+              if(nexTrList[0]?.originalTrId){
+                // 拆分出来的行
+                const cloneTr = nexTrList.shift()!
+                const lastTr = element.trList![element.trList!.length-1]
+                // 合并td
+                cloneTr.tdList.forEach((td,index)=>{
+                  lastTr.tdList[index].rowList!.push(...td.rowList!);
+                })
+              }
+                element.trList!.push(...nexTrList)
+                element.height! += nextElement.height!
+
               tableIndex++
               combineCount++
             } else {
@@ -1579,21 +1571,27 @@ export class Draw {
             curPagePreHeight = marginHeight
           }
           // 表格高度超过页面高度开始截断行
-          if (curPagePreHeight + rowMarginHeight + elementHeight > height) {
+          // 可用高度
+          let usableHeight = height - (curPagePreHeight+rowMarginHeight)
+          if ( elementHeight > usableHeight) {
             const trList = element.trList!
             // 计算需要移除的行数
             let deleteStart = 0
             let deleteCount = 0
             let preTrHeight = 0
+
+
             // 大于一行时再拆分避免循环
-            if (trList.length > 1) {
+            if (trList.length) {
               for (let r = 0; r < trList.length; r++) {
                 const tr = trList[r]
                 const trHeight = tr.height * scale
+                usableHeight -= preTrHeight
                 if (
                   curPagePreHeight + rowMarginHeight + preTrHeight + trHeight >
                   height
                 ) {
+
                   // 当前行存在跨行中断-暂时忽略分页
                   const rowColCount = tr.tdList.reduce(
                     (pre, cur) => pre + cur.colspan,
@@ -1601,6 +1599,40 @@ export class Draw {
                   )
                   if (element.colgroup?.length !== rowColCount) {
                     deleteCount = 0
+                  }
+                  // 需要拆分的表格行
+                  const originTr = deepClone(trList[deleteStart]);
+                  // 拆分出来的表格行
+                  const cloneTr = deepClone(originTr)
+                  cloneTr.id = getUUID();
+                  cloneTr.originalTrId = originTr.id
+                  originTr.height = usableHeight
+                  let originMaxHeight = 0
+                  originTr.tdList.forEach((td,index)=>{
+                    const rowList:IRow[] = [];
+                       // td 高度大于可用高度时 需要拆分
+                     while (td.mainHeight! > usableHeight && td.rowList?.length){
+                       const deleteTdRow = td.rowList.pop()!
+                       rowList.unshift(deleteTdRow)
+                       td.mainHeight! -= deleteTdRow.height
+                       td.height! -= deleteTdRow.height
+                     }
+
+                    originMaxHeight = Math.max(originMaxHeight,td.mainHeight!)
+                    cloneTr.tdList[index].rowList = rowList
+                    cloneTr.tdList[index].value = rowList.map((row)=>row.elementList).flat()
+                  });
+
+                  if(originTr.tdList.some((td)=>td.rowList?.length)) {
+                    originTr.tdList.forEach((td)=>{
+                      td.height = originMaxHeight
+                    })
+                    trList[deleteStart] = originTr;
+                    cloneTr.height -= originMaxHeight
+                    // 新的表格行插入到指定位置
+                    trList.splice(deleteStart+1,0, cloneTr)
+                    deleteStart+=1;
+                    deleteCount = trList.length - deleteStart
                   }
                   break
                 } else {
@@ -1611,6 +1643,7 @@ export class Draw {
               }
             }
             if (deleteCount) {
+              // 继续对单元格进行才分
               const cloneTrList = trList.splice(deleteStart, deleteCount)
               const cloneTrHeight = cloneTrList.reduce(
                 (pre, cur) => pre + cur.height,

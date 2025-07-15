@@ -26,6 +26,7 @@ import { Dialog } from './components/dialog/Dialog'
 import { formatPrismToken } from './utils/prism'
 import { Signature } from './components/signature/Signature'
 import { debounce, nextTick, scrollIntoView } from './utils'
+import testData from "./test.json"
 
 window.onload = function () {
   const isApple =
@@ -35,32 +36,8 @@ window.onload = function () {
   const container = document.querySelector<HTMLDivElement>('.editor')!
   const instance = new Editor(
     container,
-    {
-      header: [
-        {
-          value: '第一人民医院',
-          size: 32,
-          rowFlex: RowFlex.CENTER
-        },
-        {
-          value: '\n门诊病历',
-          size: 18,
-          rowFlex: RowFlex.CENTER
-        },
-        {
-          value: '\n',
-          type: ElementType.SEPARATOR
-        }
-      ],
-      main: <IElement[]>data,
-      footer: [
-        {
-          value: 'canvas-editor',
-          size: 12
-        }
-      ]
-    },
-    options
+    testData.data as any ?? data,
+    testData.options as any ?? options
   )
   console.log('实例: ', instance)
   // cypress使用
