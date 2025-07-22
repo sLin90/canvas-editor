@@ -90,6 +90,7 @@ import { LineBreakParticle } from './particle/LineBreakParticle'
 import { MouseObserver } from '../observer/MouseObserver'
 import { LineNumber } from './frame/LineNumber'
 import { PageBorder } from './frame/PageBorder'
+import { ITr } from '../../interface/table/Tr'
 import { ITd } from '../../interface/table/Td'
 import { Actuator } from '../actuator/Actuator'
 import { TableOperate } from './particle/table/TableOperate'
@@ -1524,47 +1525,49 @@ export class Draw {
                 // 需要拆分的表格行
                 const originTr = tr;
                 // 拆分出来的表格行
-                const cloneTr = deepClone(originTr)
-
                 type CloneTd = ITd & {original:ITd}
+                type CloneTr = Omit<ITr, "tdList"> & {tdList: CloneTd[]}
                 let lastColspan = 0;
-                // 创建拆分出来的单元格集合
-                const cloneTdList =  element.colgroup!.map((_col,cIdx):CloneTd|undefined=>{
-                  lastColspan--;
-                  if(lastColspan > 0){
-                    return
-                  }
-                  const findTd = originTr.tdList.find((td) => td.colIndex === cIdx)
-                  // 原始td 跨行单元格向上查找
-                  const originTd = findTd ?? this.tableParticle.findPreRowSpanTd(trList, r, cIdx)!
-                  if(findTd){
-                    lastColspan = findTd.colspan
-                  }
-                  originTd.originalRowspan = originTd.rowspan;
-                  return findTd ? {
-                    ...findTd,
-                    originalId: findTd.id,
-                    tdIndex:cIdx,
-                    original: originTd,
-                  } : {
-                    ...cloneTr.tdList[0]!,
-                    id:getUUID(),
-                    originalId: originTd.id,
-                    tdIndex:cIdx,
-                    colIndex:cIdx,
-                    colspan:1,
-                    rowspan:1,
-                    value:[],
-                    rowList:[],
-                    original: originTd,
-                  }
-                })
-                // 过滤跨列单元格 确保colspan都是>0
-                .filter((td):td is CloneTd=>!!td)
+                const cloneTr: CloneTr = {
+                  ...deepClone(originTr),
+                  id : getUUID(),
+                  originalId: originTr.id,
+                  minHeight: undefined,
+                  tdList: element.colgroup!.map((_col,cIdx):CloneTd|undefined=>{
+                    lastColspan--;
+                    if(lastColspan > 0){
+                      return
+                    }
+                    const findTd = originTr.tdList.find((td) => td.colIndex === cIdx)
+                    // 原始td 跨行单元格向上查找
+                    const originTd = findTd ?? this.tableParticle.findPreRowSpanTd(trList, r, cIdx)!
+                    if(findTd){
+                      lastColspan = findTd.colspan
+                    }
+                    originTd.originalRowspan = originTd.rowspan;
+                    return findTd ? {
+                      ...findTd,
+                      originalId: findTd.id,
+                      tdIndex:cIdx,
+                      original: originTd,
+                    } : {
+                      id:getUUID(),
+                      originalId: originTd.id,
+                      tdIndex:cIdx,
+                      colIndex:cIdx,
+                      colspan:1,
+                      rowspan:1,
+                      value:[],
+                      rowList:[],
+                      original: originTd,
+                    }
+                  })
+                    // 过滤跨列单元格 确保colspan都是>0
+                    .filter((td):td is CloneTd=>!!td)
+                }
 
-                cloneTr.id = getUUID();
-                cloneTr.originalId = originTr.id;
-                cloneTr.tdList = cloneTdList;
+                // 创建拆分出来的单元格集合
+                const cloneTdList = cloneTr.tdList;
 
                 const originTdList = cloneTdList.map((cloneTd)=>cloneTd.original)
 
