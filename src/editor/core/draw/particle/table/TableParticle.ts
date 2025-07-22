@@ -593,8 +593,8 @@ export class TableParticle {
     // 计算表格内元素信息
     trList.forEach((tr,trIndex)=>{
       const tdHeightList:number[] = [];
-      element.colgroup!.forEach((_, tdIndex)=>{
-        const td = tr.tdList.find((td)=>td.tdIndex===tdIndex)
+      element.colgroup!.forEach((_, colIndex)=>{
+        const td = tr.tdList.find((td)=>td.colIndex===colIndex)
         if(td){
           const rowList = computeRowList ? computeRowList(td) : td.rowList!
           const rowHeight = rowList.reduce((pre, cur) => pre + cur.height, 0)
@@ -604,7 +604,7 @@ export class TableParticle {
           td.mainHeight = curTdHeight;
           // 内容高度大于当前单元格高度需增加
           if(td.rowspan>1){
-            lastRowSpanId[tdIndex] = td.id!;
+            lastRowSpanId[td.colIndex!] = td.id!;
             // 跨行时 记录表格行额外高度
             rowSpanMap[td.id!] = {
               td,
@@ -624,7 +624,7 @@ export class TableParticle {
           }
         }else{
           // 未找到td 说明是跨行单元格
-          const rowSpanTd = rowSpanMap[lastRowSpanId[tdIndex]]
+          const rowSpanTd = rowSpanMap[lastRowSpanId[colIndex]]
           if(rowSpanTd?.rowSpan[1]  == trIndex){
             // 当前是跨尾行
             tdHeightList.push(rowSpanTd.extraHeight);
@@ -642,12 +642,14 @@ export class TableParticle {
       })
       tr.height = curTrHeight;
       element.colgroup!.forEach((_,colIndex)=>{
-        const td = tr.tdList.find((td)=>td.colIndex === colIndex) ?? this.findPreRowSpanTd(trList, trIndex, colIndex)!
-        const preHeight = rowSpanMap[td.id!]?.preHeight ?? 0;
-        const preMinHeight = rowSpanMap[td.id!]?.preMinHeight ?? tr.minHeight!;
-        td.height = curTrHeight + preHeight
-        td.realHeight = curTrHeight + preHeight
-        td.realMinHeight = preMinHeight
+        const td = tr.tdList.find((td)=>td.colIndex === colIndex) ?? this.findPreRowSpanTd(trList, trIndex, colIndex)
+        if(td){
+          const preHeight = rowSpanMap[td.id!]?.preHeight ?? 0;
+          const preMinHeight = rowSpanMap[td.id!]?.preMinHeight ?? tr.minHeight!;
+          td.height = curTrHeight + preHeight
+          td.realHeight = curTrHeight + preHeight
+          td.realMinHeight = preMinHeight
+        }
       })
     })
     // 需要重新计算表格内值
