@@ -1518,11 +1518,12 @@ export class Draw {
                 height
               ) {
                 // 需要拆分的表格行
-                const originTr = deepClone(tr);
+                const originTr = tr;
                 // 拆分出来的表格行
                 const cloneTr = deepClone(originTr)
 
                 let lastColspan = 0;
+                // 创建拆分出来的单元格集合
                 const cloneTdList =  element.colgroup!.map((_col,cIdx):ITd & {original:ITd}=>{
                   const findTd = originTr.tdList.find((td) => td.colIndex === cIdx)
                   // 原始td 跨行单元格向上查找
@@ -1555,7 +1556,6 @@ export class Draw {
 
 
                 cloneTr.id = getUUID();
-                cloneTr.originalTrId = originTr.id
                 cloneTr.tdList = cloneTdList;
 
                 const originTdList = cloneTdList.map((cloneTd)=>cloneTd.original)
@@ -1579,40 +1579,40 @@ export class Draw {
                   cloneTd.rowList = rowList
                   cloneTd.value = rowList.map((row)=>row.elementList).flat()
                 });
-                trList[deleteStart] = originTr;
+
                 const originTrHasContent = originTr.tdList.some((td)=>td.rowList?.length)
                 const cloneTrHasContent = cloneTr.tdList.some((td)=>td.rowList?.length)
-                if(originTrHasContent && cloneTrHasContent) {
-                  // 新的表格行插入到指定位置
-                  trList.splice(deleteStart+1,0, cloneTr)
-                  deleteStart+=1;
-                  deleteCount = trList.length - deleteStart
-                }
-
-                originTdList.forEach((td)=>{
-                  if(td.rowspan>1){
-                    // rowspan等于剩余行数
-                    const rowspanRemain = td.rowspan - (r - td.trIndex!)
-                    td.rowspan = (r - td.trIndex!) + (originTrHasContent?1:0)
-                    const cloneTd = cloneTr.tdList.find((cloneTd)=>cloneTd.colIndex===td.colIndex)!
-                    if(originTrHasContent){
-                      // 原始行存在内容 插入新的一行，rowspan等于剩余行数
-                      cloneTd.rowspan = rowspanRemain
-                      cloneTd.originalId = td.id
-                    }else{
-                      // 原始行没有内容 当前行直接到下一页
-                      // 存在跨行的单元格减少跨一行 并且当前行新增跨行分割的单元格
-                      originTr.tdList.push({...td,id:getUUID(),originalId:td.id,rowspan:rowspanRemain,value:cloneTd.value,rowList:cloneTd.rowList})
-                    }
+                if(cloneTrHasContent){
+                  if(originTrHasContent) {
+                    // 新的表格行插入到指定位置
+                    trList.splice(deleteStart+1,0, cloneTr)
+                    deleteStart+=1;
+                    deleteCount = trList.length - deleteStart
                   }
-                })
-                break
-              }else{
-                deleteStart = r + 1
-                deleteCount = trList.length - deleteStart
-                preTrHeight += trHeight
-                usableHeight -= trHeight
+                  originTdList.forEach((td)=>{
+                    if(td.rowspan>1){
+                      // rowspan等于剩余行数
+                      const rowspanRemain = td.rowspan - (r - td.trIndex!)
+                      td.rowspan = (r - td.trIndex!) + (originTrHasContent?1:0)
+                      const cloneTd = cloneTr.tdList.find((cloneTd)=>cloneTd.colIndex===td.colIndex)!
+                      if(originTrHasContent){
+                        // 原始行存在内容 插入新的一行，rowspan等于剩余行数
+                        cloneTd.rowspan = rowspanRemain
+                        cloneTd.originalId = td.id
+                      }else{
+                        // 原始行没有内容 当前行直接到下一页
+                        // 存在跨行的单元格减少跨一行 并且当前行新增跨行分割的单元格
+                        originTr.tdList.push({...td,id:getUUID(),originalId:td.id,rowspan:rowspanRemain,value:cloneTd.value,rowList:cloneTd.rowList})
+                      }
+                    }
+                  })
+                  break
+                }
               }
+              deleteStart = r + 1
+              deleteCount = trList.length - deleteStart
+              preTrHeight += trHeight
+              usableHeight -= trHeight
             }
 
             if (deleteCount) {
