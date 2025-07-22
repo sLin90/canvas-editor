@@ -4,17 +4,18 @@
     "header": [],
     "main": [
       {
+        "value": "",
         "type": "table",
         "trList": [
           {
-            "height": 101,
+            "height": 42,
             "tdList": [
               {
                 "colspan": 1,
                 "rowspan": 2,
                 "value": [
                   {
-                    "value": "1\n222222\n",
+                    "value": "1\n22222",
                     "size": 16
                   }
                 ]
@@ -22,18 +23,14 @@
               {
                 "colspan": 1,
                 "rowspan": 1,
-                "value": [
-                  {
-                    "value": "\n\n"
-                  }
-                ]
+                "value": []
               },
               {
                 "colspan": 1,
                 "rowspan": 4,
                 "value": [
                   {
-                    "value": "11\n1\n\n\n\n1\n1\n1\n1\n1\n1",
+                    "value": "11\n1\n1",
                     "size": 16
                   }
                 ]
@@ -53,23 +50,23 @@
             "minHeight": 42
           },
           {
-            "height": 165,
+            "height": 248,
             "tdList": [
               {
                 "colspan": 2,
                 "rowspan": 1,
                 "value": [
                   {
-                    "value": "2\n\n\n\n3",
+                    "value": "2\n3",
                     "size": 16
                   }
                 ]
               }
             ],
-            "minHeight": 42
+            "minHeight": 248
           },
           {
-            "height": 49,
+            "height": 42,
             "tdList": [
               {
                 "colspan": 1,
@@ -91,7 +88,7 @@
           }
         ],
         "width": 525,
-        "height": 357,
+        "height": 374,
         "colgroup": [
           {
             "width": 177

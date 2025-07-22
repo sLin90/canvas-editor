@@ -1319,7 +1319,7 @@ export class Draw {
       defaultSize,
       defaultRowMargin,
       scale,
-      table: { tdPadding },
+      table: { tdPadding, defaultTrMinHeight },
       defaultTabWidth
     } = this.options
     const defaultBasicRowMarginHeight = this.getDefaultBasicRowMarginHeight()
@@ -1411,6 +1411,10 @@ export class Draw {
       } else if (element.type === ElementType.TABLE) {
         // 表格分页处理进度：https://github.com/Hufe921/canvas-editor/issues/41
         // 查看后续表格是否属于同一个源表格-存在即合并
+        element.trList?.forEach((tr)=>{
+          tr.minHeight = tr.originalMinHeight ?? tr.minHeight;
+          delete tr.originalMinHeight;
+        })
         if (element.pagingId) {
           let tableIndex = i + 1
           let combineCount = 0
@@ -1556,6 +1560,7 @@ export class Draw {
 
 
                 cloneTr.id = getUUID();
+                cloneTr.originalId = originTr.id;
                 cloneTr.tdList = cloneTdList;
 
                 const originTdList = cloneTdList.map((cloneTd)=>cloneTd.original)
@@ -1582,8 +1587,14 @@ export class Draw {
 
                 const originTrHasContent = originTr.tdList.some((td)=>td.rowList?.length)
                 const cloneTrHasContent = cloneTr.tdList.some((td)=>td.rowList?.length)
-                if(cloneTrHasContent){
-                  if(originTrHasContent) {
+                const minHeightOverflow =  originTr.minHeight! > usableHeight
+                if(cloneTrHasContent || minHeightOverflow){
+                  if(originTrHasContent || (!cloneTrHasContent && minHeightOverflow)) {
+                    if(minHeightOverflow){
+                      originTr.originalMinHeight = originTr.minHeight!;
+                      originTr.minHeight = usableHeight;
+                      cloneTr.minHeight = Math.max(originTr.originalMinHeight - usableHeight, defaultTrMinHeight);
+                    }
                     // 新的表格行插入到指定位置
                     trList.splice(deleteStart+1,0, cloneTr)
                     deleteStart+=1;
