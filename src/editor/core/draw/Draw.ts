@@ -1526,13 +1526,17 @@ export class Draw {
                 // 拆分出来的表格行
                 const cloneTr = deepClone(originTr)
 
+                type CloneTd = ITd & {original:ITd}
                 let lastColspan = 0;
                 // 创建拆分出来的单元格集合
-                const cloneTdList =  element.colgroup!.map((_col,cIdx):ITd & {original:ITd}=>{
+                const cloneTdList =  element.colgroup!.map((_col,cIdx):CloneTd|undefined=>{
+                  lastColspan--;
+                  if(lastColspan > 0){
+                    return
+                  }
                   const findTd = originTr.tdList.find((td) => td.colIndex === cIdx)
                   // 原始td 跨行单元格向上查找
                   const originTd = findTd ?? this.tableParticle.findPreRowSpanTd(trList, r, cIdx)!
-                  lastColspan--;
                   if(findTd){
                     lastColspan = findTd.colspan
                   }
@@ -1548,7 +1552,7 @@ export class Draw {
                     originalId: originTd.id,
                     tdIndex:cIdx,
                     colIndex:cIdx,
-                    colspan:lastColspan>0?0:1,
+                    colspan:1,
                     rowspan:1,
                     value:[],
                     rowList:[],
@@ -1556,8 +1560,7 @@ export class Draw {
                   }
                 })
                 // 过滤跨列单元格 确保colspan都是>0
-                .filter((td)=>td.colspan)
-
+                .filter((td):td is CloneTd=>!!td)
 
                 cloneTr.id = getUUID();
                 cloneTr.originalId = originTr.id;
