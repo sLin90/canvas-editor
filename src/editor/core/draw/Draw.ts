@@ -1617,6 +1617,7 @@ export class Draw {
                         // 原始行没有内容 当前行直接到下一页
                         // 存在跨行的单元格减少跨一行 并且当前行新增跨行分割的单元格
                         originTr.tdList.push({...td,id:getUUID(),originalId:td.id,rowspan:rowspanRemain,value:cloneTd.value,rowList:cloneTd.rowList})
+                        originTr.tdList.sort((a,b)=>a.colIndex!-b.colIndex!)
                       }
                     }
                   })
