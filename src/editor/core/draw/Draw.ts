@@ -1602,7 +1602,7 @@ export class Draw {
                     }else{
                       // 原始行没有内容 当前行直接到下一页
                       // 存在跨行的单元格减少跨一行 并且当前行新增跨行分割的单元格
-                      originTr.tdList.push({...td,id:getUUID(),originalId:td.id,rowspan:1,value:cloneTd.value,rowList:cloneTd.rowList})
+                      originTr.tdList.push({...td,id:getUUID(),originalId:td.id,rowspan:rowspanRemain,value:cloneTd.value,rowList:cloneTd.rowList})
                     }
                   }
                 })
@@ -1618,7 +1618,6 @@ export class Draw {
             if (deleteCount) {
               // 继续对单元格进行拆分
               const cloneTrList = trList.splice(deleteStart, deleteCount)
-              console.log("@cc rowspan",trList[0].tdList[1].rowspan)
               const pagingId = element.pagingId || getUUID()
               element.pagingId = pagingId
 
