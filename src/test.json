@@ -7,24 +7,24 @@
         "type": "table",
         "trList": [
           {
-            "height": 253,
+            "height": 101,
             "tdList": [
               {
                 "colspan": 1,
                 "rowspan": 1,
                 "value": [
                   {
-                    "value": "1\n222222222222222222222222222222222222\n\n5\n\n",
+                    "value": "1\n222222\n",
                     "size": 16
                   }
                 ]
               },
               {
                 "colspan": 1,
-                "rowspan": 2,
+                "rowspan": 3,
                 "value": [
                   {
-                    "value": "1\n2\n3\n4\n5\n6\n7\n8\n9\n0\n1"
+                    "value": "1\n2\n3\n4\n5\n6\n7\n8\n9\n0\n-"
                   }
                 ]
               }
@@ -32,14 +32,30 @@
             "minHeight": 42
           },
           {
-            "height": 104,
+            "height": 229,
             "tdList": [
               {
                 "colspan": 1,
                 "rowspan": 1,
                 "value": [
                   {
-                    "value": "a\nb\nc",
+                    "value": "2\n\n\n\n\n\n3",
+                    "size": 16
+                  }
+                ]
+              }
+            ],
+            "minHeight": 42
+          },
+          {
+            "height": 42,
+            "tdList": [
+              {
+                "colspan": 1,
+                "rowspan": 1,
+                "value": [
+                  {
+                    "value": "a",
                     "size": 16
                   }
                 ]
@@ -49,7 +65,7 @@
           }
         ],
         "width": 358,
-        "height": 357,
+        "height": 372,
         "colgroup": [
           {
             "width": 177

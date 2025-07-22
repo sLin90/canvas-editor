@@ -35,4 +35,6 @@ export interface ITd {
   deletable?: boolean // 内容不可删除
   // 原ID 代表当前行是分页时拆分出来的
   originalId?: string
+  // 拆分前原始的跨行列数
+  originalRowspan?:number
 }

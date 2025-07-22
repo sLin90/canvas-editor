@@ -95,7 +95,6 @@ import { Actuator } from '../actuator/Actuator'
 import { TableOperate } from './particle/table/TableOperate'
 import { Area } from './interactive/Area'
 import { Badge } from './frame/Badge'
-import { ITr } from '../../interface/table/Tr'
 
 export class Draw {
   private container: HTMLDivElement
@@ -1320,7 +1319,7 @@ export class Draw {
       defaultSize,
       defaultRowMargin,
       scale,
-      table: { tdPadding, defaultTrMinHeight },
+      table: { tdPadding },
       defaultTabWidth
     } = this.options
     const defaultBasicRowMarginHeight = this.getDefaultBasicRowMarginHeight()
@@ -1410,8 +1409,6 @@ export class Draw {
         }
         metrics.boundingBoxAscent = 0
       } else if (element.type === ElementType.TABLE) {
-        const tdPaddingWidth = tdPadding[1] + tdPadding[3]
-        const tdPaddingHeight = tdPadding[0] + tdPadding[2]
         // 表格分页处理进度：https://github.com/Hufe921/canvas-editor/issues/41
         // 查看后续表格是否属于同一个源表格-存在即合并
         if (element.pagingId) {
@@ -1421,19 +1418,25 @@ export class Draw {
             const nextElement = elementList[tableIndex]
             if (nextElement.pagingId === element.pagingId) {
               const nexTrList = nextElement.trList!.filter(
-                tr => !tr.pagingRepeat
-              )
-              if(nexTrList[0]?.originalTrId){
-                // 拆分出来的行
-                const cloneTr = nexTrList.shift()!
-                const lastTr = element.trList![element.trList!.length-1]
-                // 合并td
-                cloneTr.tdList.forEach((td,index)=>{
-                  lastTr.tdList[index]?.rowList?.push(...td.rowList!);
+                  tr => !tr.pagingRepeat
+                ).filter((nexTr)=>{
+                nexTr.tdList = nexTr.tdList.filter((td)=>{
+                  // td内容合并
+                  if(td.originalId){
+                    const originalTd = element.trList![td.trIndex!].tdList.find(({id})=>id===td.originalId)
+                    if(originalTd){
+                      originalTd.rowList?.push(...td.rowList!)
+                      originalTd.rowspan = originalTd.originalRowspan ?? originalTd.rowspan
+                    }
+                    return false
+                  }
+                  return true;
                 })
-              }
-                element.trList!.push(...nexTrList)
-                element.height! += nextElement.height!
+                return !!nexTr.tdList.length
+              })
+
+              element.trList!.push(...nexTrList)
+              element.height! += nextElement.height!
 
               tableIndex++
               combineCount++
@@ -1446,93 +1449,15 @@ export class Draw {
           }
         }
         element.pagingIndex = element.pagingIndex ?? 0
-        const trList = element.trList!
-        // 计算前移除上一次的高度
-        for (let t = 0; t < trList.length; t++) {
-          const tr = trList[t]
-          tr.height = tr.minHeight || defaultTrMinHeight
-          tr.minHeight = tr.height
-        }
-        // 计算表格行列
-        this.tableParticle.computeRowColInfo(element)
-        // 计算表格内元素信息
-        for (let t = 0; t < trList.length; t++) {
-          const tr = trList[t]
-          for (let d = 0; d < tr.tdList.length; d++) {
-            const td = tr.tdList[d]
-            const rowList = this.computeRowList({
-              innerWidth: (td.width! - tdPaddingWidth) * scale,
-              elementList: td.value,
-              isFromTable: true,
-              isPagingMode
-            })
-            const rowHeight = rowList.reduce((pre, cur) => pre + cur.height, 0)
-            td.rowList = rowList
-            // 移除缩放导致的行高变化-渲染时会进行缩放调整
-            const curTdHeight = rowHeight / scale + tdPaddingHeight
-            // 内容高度大于当前单元格高度需增加
-            if (td.height! < curTdHeight) {
-              const extraHeight = curTdHeight - td.height!
-              const changeTr = trList[t + td.rowspan - 1]
-              changeTr.height += extraHeight
-              changeTr.tdList.forEach(changeTd => {
-                changeTd.height! += extraHeight
-                if (!changeTd.realHeight) {
-                  changeTd.realHeight = changeTd.height!
-                } else {
-                  changeTd.realHeight! += extraHeight
-                }
-              })
-            }
-            // 当前单元格最小高度及真实高度（包含跨列）
-            let curTdMinHeight = 0
-            let curTdRealHeight = 0
-            let i = 0
-            while (i < td.rowspan) {
-              const curTr = trList[i + t] || trList[t]
-              curTdMinHeight += curTr.minHeight!
-              curTdRealHeight += curTr.height!
-              i++
-            }
-            td.realMinHeight = curTdMinHeight
-            td.realHeight = curTdRealHeight
-            td.mainHeight = curTdHeight
-          }
-        }
-        // 单元格高度大于实际内容高度需减少
-        // const reduceTrList = this.tableParticle.getTrListGroupByCol(trList)
-        // for (let t = 0; t < reduceTrList.length; t++) {
-        //   const tr = reduceTrList[t]
-        //   let reduceHeight = -1
-        //   for (let d = 0; d < tr.tdList.length; d++) {
-        //     const td = tr.tdList[d]
-        //     const curTdRealHeight = td.realHeight!
-        //     const curTdHeight = td.mainHeight!
-        //     const curTdMinHeight = td.realMinHeight!
-        //     // 获取最大可减少高度
-        //     const curReduceHeight =
-        //       curTdHeight < curTdMinHeight
-        //         ? curTdRealHeight - curTdMinHeight
-        //         : curTdRealHeight - curTdHeight
-        //     if (!~reduceHeight || curReduceHeight < reduceHeight) {
-        //       reduceHeight = curReduceHeight
-        //     }
-        //   }
-        //   if (reduceHeight > 0) {
-        //     const changeTr = trList[t]
-        //     changeTr.height -= reduceHeight
-        //     if(changeTr.height<0){
-        //       changeTr.height=0;
-        //     }
-        //     changeTr.tdList.forEach(changeTd => {
-        //       changeTd.height! -= reduceHeight
-        //       changeTd.realHeight! -= reduceHeight
-        //     })
-        //   }
-        // }
-        // 需要重新计算表格内值
-        this.tableParticle.computeRowColInfo(element)
         // 计算出表格高度
+        this.tableParticle.computeTrHeight(element, (td: ITd)=>{
+          return this.computeRowList({
+            innerWidth: (td.width! - (tdPadding[1] + tdPadding[3])) * scale,
+            elementList: td.value,
+            isFromTable: true,
+            isPagingMode
+          })
+        })
         const tableHeight = this.tableParticle.getTableHeight(element)
         const tableWidth = this.tableParticle.getTableWidth(element)
         element.width = tableWidth
@@ -1577,7 +1502,7 @@ export class Draw {
           // 表格高度超过页面高度开始截断行
           // 可用高度
           let usableHeight = height - (curPagePreHeight+rowMarginHeight)
-          if ( elementHeight > usableHeight) {
+          if (elementHeight > usableHeight) {
             const trList = element.trList!
             // 计算需要移除的行数
             let deleteStart = 0
@@ -1585,132 +1510,118 @@ export class Draw {
             let preTrHeight = 0
 
             // 大于一行时再拆分避免循环
-              for (let r = 0; r < trList.length; r++) {
-                const tr = trList[r]
-                const trHeight = tr.height * scale
-                usableHeight -= preTrHeight
-                if (
-                  curPagePreHeight + rowMarginHeight + preTrHeight + trHeight >
-                  height
-                ) {
-                  // 需要拆分的表格行
-                  const originTr = deepClone(tr);
-                  // 拆分出来的表格行
-                  const cloneTr = deepClone(originTr)
+            for (let r = 0; r < trList.length; r++) {
+              const tr = trList[r]
+              const trHeight = tr.height * scale
+              if (
+                curPagePreHeight + rowMarginHeight + preTrHeight + trHeight >
+                height
+              ) {
+                // 需要拆分的表格行
+                const originTr = deepClone(tr);
+                // 拆分出来的表格行
+                const cloneTr = deepClone(originTr)
 
-                  let lastColspan = 0;
-                  const cloneTdList =  element.colgroup!.map((_col,cIdx):ITd=>{
-                    const findTd = cloneTr.tdList.find((td) => td.colIndex === cIdx)
-                    lastColspan--;
-                    if(findTd){
-                      lastColspan = findTd.colspan
-                    }
-                    return findTd?{
-                      ...findTd,
-                      originalId:findTd.id,
-                      tdIndex:cIdx
-                    } : {
-                      ...cloneTr.tdList[0]!,
-                      id:getUUID(),
-                      tdIndex:cIdx,
-                      colIndex:cIdx,
-                      colspan:lastColspan>0?0:1,
-                      rowspan:1,
-                      value:[],
-                      rowList:[],
-                    }
-                  }).filter((td)=>td.colspan)
-
-
-                  cloneTr.id = getUUID();
-                  cloneTr.originalTrId = originTr.id
-                  cloneTr.tdList = cloneTdList;
-
-                  const findRowSpanTd = (trList: ITr[],currentTd: ITd): ITd | undefined => {
-                    for (let trIdx = currentTd.trIndex!-1; trIdx>=0; trIdx--){
-                      const findTd = trList[trIdx].tdList.find((td)=>td.colIndex===currentTd.colIndex)
-                      if(findTd){
-                        return  findTd;
-                      }
-                    }
-                    return undefined;
+                let lastColspan = 0;
+                const cloneTdList =  element.colgroup!.map((_col,cIdx):ITd & {original:ITd}=>{
+                  const findTd = originTr.tdList.find((td) => td.colIndex === cIdx)
+                  // 原始td 跨行单元格向上查找
+                  const originTd = findTd ?? this.tableParticle.findPreRowSpanTd(trList, r, cIdx)!
+                  lastColspan--;
+                  if(findTd){
+                    lastColspan = findTd.colspan
                   }
-                  const prevTdList = cloneTdList.map((cloneTd)=>{
-                    // 找到原td 找不到可能是跨行了需要找到跨行的td
-                    return  originTr.tdList.find((td)=>td.colIndex===cloneTd.colIndex) ?? findRowSpanTd(trList,cloneTd)!
-                  })
-
-                  // 拆分减少部分的高度
-                  let deleteMaxHeight = 0
-                  // 循环拆分td项
-                  prevTdList.forEach((prevTd,index)=>{
-                    const rowList:IRow[] = [];
-                      // td 高度大于可用高度时 需要拆分
-                    let maxHeight = usableHeight
-                    if(prevTd.rowspan>1){
-                      // 跨行单元格，最大高度需要加上已经跨过的所有tr高度之和
-                      maxHeight += trList.slice(r-(prevTd.rowspan-1),(prevTd.rowspan-1)).reduce((pre,cur)=>cur.height*scale + pre,0)
-                    }
-                    while (prevTd.mainHeight! > maxHeight && prevTd.rowList?.length){
-                      const deleteTdRow = prevTd.rowList.pop()!
-                      rowList.unshift(deleteTdRow)
-                      prevTd.mainHeight! -= deleteTdRow.height
-                    }
-                    const deleteRowHeight = rowList.reduce((pre,cur)=>cur.height+pre,0);
-                    deleteMaxHeight = Math.max(deleteMaxHeight,deleteRowHeight)
-                    const cloneTd = cloneTdList[index]
-                    cloneTd.rowList = rowList
-                    cloneTd.value = rowList.map((row)=>row.elementList).flat()
-                  });
-
-
-                  trList[deleteStart] = originTr;
-
-                  if(originTr.tdList.some((td)=>td.rowList?.length)) {
-                    // 任保留部分内容
-                    prevTdList.forEach((td)=>{
-                        td.height! -= deleteMaxHeight
-                    })
-                    originTr.height -= deleteMaxHeight
-
-                    // 计算拆分出来的行高度
-                    cloneTr.height = deleteMaxHeight;
-                    // 新的表格行插入到指定位置
-                    trList.splice(deleteStart+1,0, cloneTr)
-                    deleteStart+=1;
-                    deleteCount = trList.length - deleteStart
-                  }else{
-                    // 完全没有内容 当前行直接到下一页
-                    // 存在跨行的单元格减少跨一行
-                    prevTdList.forEach((td)=>{
-                      if(td.rowspan>1){
-                        td.rowspan-=1
-                        td.height = trList[td.trIndex!].height
-                        originTr.tdList.push({...td,id:getUUID(),rowspan:1,value:[],rowList:[]})
-                      }
-                    })
+                  originTd.originalRowspan = originTd.rowspan;
+                  return findTd ? {
+                    ...findTd,
+                    originalId: findTd.id,
+                    tdIndex:cIdx,
+                    original: originTd,
+                  } : {
+                    ...cloneTr.tdList[0]!,
+                    id:getUUID(),
+                    originalId: originTd.id,
+                    tdIndex:cIdx,
+                    colIndex:cIdx,
+                    colspan:lastColspan>0?0:1,
+                    rowspan:1,
+                    value:[],
+                    rowList:[],
+                    original: originTd,
                   }
-                  break
-                }else{
-                  deleteStart = r + 1
+                })
+                // 过滤跨列单元格 确保colspan都是>0
+                .filter((td)=>td.colspan)
+
+
+                cloneTr.id = getUUID();
+                cloneTr.originalTrId = originTr.id
+                cloneTr.tdList = cloneTdList;
+
+                const originTdList = cloneTdList.map((cloneTd)=>cloneTd.original)
+
+                // 循环拆分td项
+                originTdList.forEach((originTd,index)=>{
+                  const rowList:IRow[] = [];
+                    // td 高度大于可用高度时 需要拆分
+                  let maxHeight = usableHeight
+                  if(originTd.rowspan>1){
+                    // 跨行单元格，最大高度需要加上已经跨过的所有tr高度之和
+                    const rowSpanTrList = trList.slice(originTd.trIndex,r - originTd.trIndex!);
+                    maxHeight += rowSpanTrList.reduce((pre,cur)=>cur.height * scale + pre,0)
+                  }
+                  while (originTd.mainHeight! > maxHeight && originTd.rowList?.length){
+                    const deleteTdRow = originTd.rowList.pop()!
+                    rowList.unshift(deleteTdRow)
+                    originTd.mainHeight! -= deleteTdRow.height
+                  }
+                  const cloneTd = cloneTdList[index]
+                  cloneTd.rowList = rowList
+                  cloneTd.value = rowList.map((row)=>row.elementList).flat()
+                });
+                trList[deleteStart] = originTr;
+                const originTrHasContent = originTr.tdList.some((td)=>td.rowList?.length)
+                const cloneTrHasContent = cloneTr.tdList.some((td)=>td.rowList?.length)
+                if(originTrHasContent && cloneTrHasContent) {
+                  // 新的表格行插入到指定位置
+                  trList.splice(deleteStart+1,0, cloneTr)
+                  deleteStart+=1;
                   deleteCount = trList.length - deleteStart
-                  preTrHeight += trHeight
                 }
+
+                originTdList.forEach((td)=>{
+                  if(td.rowspan>1){
+                    // rowspan等于剩余行数
+                    const rowspanRemain = td.rowspan - (r - td.trIndex!)
+                    td.rowspan = (r - td.trIndex!) + (originTrHasContent?1:0)
+                    const cloneTd = cloneTr.tdList.find((cloneTd)=>cloneTd.colIndex===td.colIndex)!
+                    if(originTrHasContent){
+                      // 原始行存在内容 插入新的一行，rowspan等于剩余行数
+                      cloneTd.rowspan = rowspanRemain
+                      cloneTd.originalId = td.id
+                    }else{
+                      // 原始行没有内容 当前行直接到下一页
+                      // 存在跨行的单元格减少跨一行 并且当前行新增跨行分割的单元格
+                      originTr.tdList.push({...td,id:getUUID(),originalId:td.id,rowspan:1,value:cloneTd.value,rowList:cloneTd.rowList})
+                    }
+                  }
+                })
+                break
+              }else{
+                deleteStart = r + 1
+                deleteCount = trList.length - deleteStart
+                preTrHeight += trHeight
+                usableHeight -= trHeight
               }
-            console.log("@cc deleteCount",deleteCount)
+            }
+
             if (deleteCount) {
-              // 继续对单元格进行才分
+              // 继续对单元格进行拆分
               const cloneTrList = trList.splice(deleteStart, deleteCount)
-              const cloneTrHeight = cloneTrList.reduce(
-                (pre, cur) => pre + cur.height,
-                0
-              )
-              const cloneTrRealHeight = cloneTrHeight * scale
+              console.log("@cc rowspan",trList[0].tdList[1].rowspan)
               const pagingId = element.pagingId || getUUID()
               element.pagingId = pagingId
-              element.height -= cloneTrHeight
-              metrics.height -= cloneTrRealHeight
-              metrics.boundingBoxDescent -= cloneTrRealHeight
+
               // 追加拆分表格
               const cloneElement = deepClone(element)
               cloneElement.pagingId = pagingId
@@ -1725,8 +1636,17 @@ export class Draw {
               cloneElement.trList = cloneTrList
               cloneElement.id = getUUID()
               this.spliceElementList(elementList, i + 1, 0, [cloneElement])
+
+              // 计算出表格高度
+              this.tableParticle.computeTrHeight(element)
+              const tableHeight = this.tableParticle.getTableHeight(element)
+              const elementHeight = tableHeight * scale
+              element.height = tableHeight
+              metrics.height =  elementHeight
+              metrics.boundingBoxDescent = elementHeight
             }
           }
+
           // 表格经过分页处理-需要处理上下文
           if (element.pagingId) {
             const positionContext = this.position.getPositionContext()
