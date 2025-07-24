@@ -457,6 +457,7 @@ export class RangeManager {
       }
     }
     control.destroyControl()
+    console.warn("@cc setRange",this.range.startIndex)
   }
 
   public replaceRange(range: IRange) {

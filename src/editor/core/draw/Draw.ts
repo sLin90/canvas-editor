@@ -1545,14 +1545,16 @@ export class Draw {
                     originTd.originalRowspan = originTd.rowspan;
                     return findTd ? {
                       ...findTd,
-                      originalId:findTd.originalId ?? findTd.id,
-                      tdIndex:cIdx,
+                      originalId: findTd.originalId ?? findTd.id,
+                      linkTdPrevId: findTd.id,
+                      tdIndex: cIdx,
                       original: originTd,
                     } : {
                       id:getUUID(),
-                      originalId:originTd.originalId ?? originTd.id,
-                      tdIndex:cIdx,
-                      colIndex:cIdx,
+                      originalId: originTd.originalId ?? originTd.id,
+                      linkTdPrevId: originTd.id,
+                      tdIndex: cIdx,
+                      colIndex: cIdx,
                       colspan:1,
                       rowspan:1,
                       value:[],
@@ -2780,6 +2782,34 @@ export class Draw {
         }
       }
     })
+    // 修复光标位置
+    this.fixPosition();
+  }
+
+  public fixPosition(){
+    const positionContext = this.position.getPositionContext()
+    if(positionContext.isTable){
+      // 渲染完成后修复单元格拆分光标位置
+      const list = this.getElementList()
+      const startIndex = this.range.getRange().startIndex;
+      if(startIndex >= list.length){
+        // 超出索引时, 需要找到拆分后的单元格 并且将光标改变至正确位置
+        const td = this.getTd();
+        const elementList = this.getOriginalElementList()
+        positionContext.index! += 1
+        const table = elementList[positionContext.index!]
+        const tr = table.trList?.[0];
+        positionContext.trIndex = 0
+        const nextTd = table.trList?.[0].tdList.find(({linkTdPrevId})=> td?.id === linkTdPrevId)
+        positionContext.tableId = table.id
+        positionContext.trId = tr?.id
+        positionContext.tdId = nextTd?.id
+        this.position.setPositionContext(positionContext)
+        const newStartIndex = startIndex - list.length;
+        this.range.setRange(newStartIndex,newStartIndex)
+        this.setCursor(newStartIndex)
+      }
+    }
   }
 
   public setCursor(curIndex: number | undefined) {

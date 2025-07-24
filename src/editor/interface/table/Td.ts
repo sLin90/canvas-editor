@@ -33,6 +33,7 @@ export interface ITd {
   realMinHeight?: number // 真实最小高度（包含跨列）
   disabled?: boolean // 内容不可编辑
   deletable?: boolean // 内容不可删除
-  originalId?: string // 原ID 代表当前单元格是分页时拆分出来的
+  originalId?: string // 原始单元格ID 代表当前单元格是分页时拆分出来的
+  linkTdPrevId?: string // 连接单元格ID(前一个拆分段单元格)
   originalRowspan?: number // 拆分前原始的跨行列数
 }

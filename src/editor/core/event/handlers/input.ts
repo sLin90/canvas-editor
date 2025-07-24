@@ -90,6 +90,7 @@ export function input(data: string, host: CanvasEvent) {
       control.emitControlContentChange()
     }
   } else {
+    // 组合输入期间不处理元素内容
     if(!isComposing){
       const start = startIndex + 1
       if (startIndex !== endIndex) {
@@ -129,8 +130,5 @@ export function composingInputElements(host: CanvasEvent,elementList: IElement[]
   if (!host.compositionInfo || host.isComposing) return elementList
   const { startIndex, endIndex } = host.compositionInfo
   elementList.splice(startIndex + 1, endIndex - startIndex)
-  const rangeManager = host.getDraw().getRange()
-  rangeManager.setRange(startIndex, startIndex)
-  removeComposingInput(host);
   return elementList
 }
