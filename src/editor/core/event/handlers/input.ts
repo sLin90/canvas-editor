@@ -90,20 +90,24 @@ export function input(data: string, host: CanvasEvent) {
       control.emitControlContentChange()
     }
   } else {
-    const start = startIndex + 1
-    if (startIndex !== endIndex) {
-      draw.spliceElementList(elementList, start, endIndex - startIndex)
+    if(!isComposing){
+      const start = startIndex + 1
+      if (startIndex !== endIndex) {
+        draw.spliceElementList(elementList, start, endIndex - startIndex)
+      }
+      formatElementContext(elementList, inputData, startIndex, {
+        editorOptions: draw.getOptions()
+      })
+      draw.spliceElementList(elementList, start, 0, inputData)
+      curIndex = startIndex + inputData.length
+    }else{
+      curIndex = startIndex;
     }
-    formatElementContext(elementList, inputData, startIndex, {
-      editorOptions: draw.getOptions()
-    })
-    draw.spliceElementList(elementList, start, 0, inputData)
-    curIndex = startIndex + inputData.length
   }
-  if (~curIndex) {
+  if (~curIndex && !isComposing) {
     rangeManager.setRange(curIndex, curIndex)
     // 组合输入期间不渲染,防止单元格分页组合内容跨页导致渲染问题
-    !isComposing && draw.render({
+    draw.render({
       curIndex,
       isSubmitHistory: !isComposing
     })
@@ -111,8 +115,8 @@ export function input(data: string, host: CanvasEvent) {
   if (isComposing) {
     host.compositionInfo = {
       value: text,
-      startIndex: curIndex - inputData.length,
-      endIndex: curIndex,
+      startIndex: curIndex,
+      endIndex: endIndex,
       defaultStyle
     }
   }
@@ -122,7 +126,7 @@ export function removeComposingInput(host: CanvasEvent) {
   host.compositionInfo = null
 }
 export function composingInputElements(host: CanvasEvent,elementList: IElement[]){
-  if (!host.compositionInfo) return elementList
+  if (!host.compositionInfo || host.isComposing) return elementList
   const { startIndex, endIndex } = host.compositionInfo
   elementList.splice(startIndex + 1, endIndex - startIndex)
   const rangeManager = host.getDraw().getRange()

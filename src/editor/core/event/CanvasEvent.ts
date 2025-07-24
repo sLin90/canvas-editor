@@ -26,6 +26,7 @@ export interface ICompositionInfo {
   endIndex: number
   value: string
   defaultStyle: IRangeElementStyle | null
+  cancel?: boolean
 }
 
 export class CanvasEvent {
@@ -189,6 +190,9 @@ export class CanvasEvent {
 
   public compositionend(evt: CompositionEvent) {
     composition.compositionend(this, evt)
+  }
+  public compositionCancel() {
+    composition.compositionCancel(this)
   }
 
   public drop(evt: DragEvent) {

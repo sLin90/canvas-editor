@@ -40,6 +40,10 @@ export class CursorAgent {
       'compositionend',
       this._compositionend.bind(this)
     )
+    agentCursorDom.addEventListener(
+      'keydown',
+      this._keydown.bind(this)
+    )
     this.eventBus.on("rangeStyleChange",(payload)=>{
       // 监听当前选中字体大小 动态修改代理光标字体大小
       this.agentCursorDom.style.fontSize = Math.max(payload.size,18) + 'px';
@@ -85,5 +89,10 @@ export class CursorAgent {
   private _compositionend(evt: CompositionEvent) {
     this.agentCursorDom.style.zIndex = "-1"
     this.canvasEvent.compositionend(evt)
+  }
+  private _keydown(evt: KeyboardEvent) {
+    if(this.canvasEvent.isComposing && evt.code==="Escape"){
+      this.canvasEvent.compositionCancel()
+    }
   }
 }

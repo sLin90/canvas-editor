@@ -11,10 +11,11 @@ function compositionend(host: CanvasEvent, evt: CompositionEvent) {
   const draw = host.getDraw()
   // 不存在值：删除合成输入
   if (!evt.data) {
+    const cancel = host.compositionInfo?.cancel
     removeComposingInput(host)
     const rangeManager = draw.getRange()
     const { endIndex: curIndex } = rangeManager.getRange()
-    draw.render({
+    !cancel && draw.render({
       curIndex,
       isSubmitHistory: false
     })
@@ -28,8 +29,14 @@ function compositionend(host: CanvasEvent, evt: CompositionEvent) {
   const cursor = draw.getCursor()
   cursor.clearAgentDomValue()
 }
+function compositionCancel(host: CanvasEvent) {
+  if(host.compositionInfo){
+    host.compositionInfo.cancel = true;
+  }
+}
 
 export default {
   compositionstart,
-  compositionend
+  compositionend,
+  compositionCancel
 }
