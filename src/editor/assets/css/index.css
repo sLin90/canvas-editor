@@ -9,8 +9,6 @@
 @import './zone/zone.css';
 
 .ce-inputarea {
-  width: 100px;
-  height: 30px;
   min-width: 0;
   min-height: 0;
   margin: 0;
@@ -25,10 +23,9 @@
   resize: none;
   border: none;
   overflow: hidden;
-  color: transparent;
   user-select: none;
   caret-color: transparent;
-  background-color: transparent;
+  white-space: pre;
 }
 
 .ce-cursor {

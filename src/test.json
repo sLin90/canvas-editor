@@ -8,11 +8,11 @@
         "type": "table",
         "trList": [
           {
-            "height": 42,
+            "height": 101,
             "tdList": [
               {
                 "colspan": 1,
-                "rowspan": 2,
+                "rowspan": 1,
                 "value": [
                   {
                     "value": "1\n22222",
@@ -22,15 +22,10 @@
               },
               {
                 "colspan": 1,
-                "rowspan": 1,
-                "value": []
-              },
-              {
-                "colspan": 1,
-                "rowspan": 4,
+                "rowspan": 2,
                 "value": [
                   {
-                    "value": "11\n1\n1",
+                    "value": "",
                     "size": 16
                   }
                 ]
@@ -39,62 +34,26 @@
             "minHeight": 42
           },
           {
-            "height": 42,
-            "tdList": [
-              {
-                "colspan": 1,
-                "rowspan": 1,
-                "value": []
-              }
-            ],
-            "minHeight": 42
-          },
-          {
-            "height": 248,
-            "tdList": [
-              {
-                "colspan": 2,
-                "rowspan": 1,
-                "value": [
-                  {
-                    "value": "2\n3",
-                    "size": 16
-                  }
-                ]
-              }
-            ],
-            "minHeight": 248
-          },
-          {
-            "height": 42,
+            "height": 101,
             "tdList": [
               {
                 "colspan": 1,
                 "rowspan": 1,
                 "value": [
                   {
-                    "value": "a",
-                    "size": 16
+                    "value": "1\n1"
                   }
                 ]
-              },
-              {
-                "colspan": 1,
-                "rowspan": 1,
-                "value": []
               }
             ],
             "minHeight": 42
           }
         ],
-        "width": 525,
-        "height": 374,
+        "width": 344,
+        "height": 202,
         "colgroup": [
           {
             "width": 177
-          },
-          {
-            "width": 181
           },
           {
             "width": 167
@@ -117,7 +76,7 @@
     "defaultBasicRowMarginHeight": 8,
     "defaultTabWidth": 32,
     "width": 794,
-    "height": 600,
+    "height": 350,
     "scale": 1,
     "pageGap": 20,
     "underlineColor": "#000000",

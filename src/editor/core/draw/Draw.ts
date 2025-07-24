@@ -1428,11 +1428,10 @@ export class Draw {
                 nexTr.tdList = nexTr.tdList.filter((td)=>{
                   // td内容合并
                   if(td.originalId){
-                    const originalTd = element.trList![td.trIndex!].tdList.find(({id})=>id===td.originalId)
-                    if(originalTd){
-                      originalTd.rowList?.push(...td.rowList!)
-                      originalTd.rowspan = originalTd.originalRowspan ?? originalTd.rowspan
-                    }
+                    const originalTd = element.trList!.map((tr)=>tr.tdList).flat().find(({id})=>id===td.originalId)!
+                    // 合并value
+                    originalTd.value.push(...td.value)
+                    originalTd.rowspan = originalTd.originalRowspan ?? originalTd.rowspan
                     return false
                   }
                   return true;
@@ -1531,7 +1530,6 @@ export class Draw {
                 const cloneTr: CloneTr = {
                   ...deepClone(originTr),
                   id : getUUID(),
-                  originalId: originTr.id,
                   minHeight: undefined,
                   tdList: element.colgroup!.map((_col,cIdx):CloneTd|undefined=>{
                     lastColspan--;
@@ -1547,12 +1545,12 @@ export class Draw {
                     originTd.originalRowspan = originTd.rowspan;
                     return findTd ? {
                       ...findTd,
-                      originalId: findTd.id,
+                      originalId:findTd.originalId ?? findTd.id,
                       tdIndex:cIdx,
                       original: originTd,
                     } : {
                       id:getUUID(),
-                      originalId: originTd.id,
+                      originalId:originTd.originalId ?? originTd.id,
                       tdIndex:cIdx,
                       colIndex:cIdx,
                       colspan:1,
@@ -1583,6 +1581,7 @@ export class Draw {
                   }
                   while (originTd.mainHeight! > maxHeight && originTd.rowList?.length){
                     const deleteTdRow = originTd.rowList.pop()!
+                    originTd.value.splice(originTd.value.length - deleteTdRow.elementList.length)
                     rowList.unshift(deleteTdRow)
                     originTd.mainHeight! -= deleteTdRow.height
                   }
@@ -1593,7 +1592,7 @@ export class Draw {
 
                 const originTrHasContent = originTr.tdList.some((td)=>td.rowList?.length)
                 const cloneTrHasContent = cloneTr.tdList.some((td)=>td.rowList?.length)
-                const minHeightOverflow =  originTr.minHeight! > usableHeight
+                const minHeightOverflow = originTr.minHeight! > usableHeight
                 if(cloneTrHasContent || minHeightOverflow){
                   if(originTrHasContent || (!cloneTrHasContent && minHeightOverflow)) {
                     if(minHeightOverflow){
@@ -1605,6 +1604,11 @@ export class Draw {
                     trList.splice(deleteStart+1,0, cloneTr)
                     deleteStart+=1;
                     deleteCount = trList.length - deleteStart
+                  }else if(cloneTrHasContent){
+                    // 未插入新行 立即还原
+                    originTdList.forEach((td, index)=>{
+                      td.value.push(...cloneTdList[index].value)
+                    })
                   }
                   originTdList.forEach((td)=>{
                     if(td.rowspan>1){
@@ -1615,8 +1619,7 @@ export class Draw {
                       if(originTrHasContent){
                         // 原始行存在内容 插入新的一行，rowspan等于剩余行数
                         cloneTd.rowspan = rowspanRemain
-                        cloneTd.originalId = td.id
-                      }else{
+                      } else {
                         // 原始行没有内容 当前行直接到下一页
                         // 存在跨行的单元格减少跨一行 并且当前行新增跨行分割的单元格
                         originTr.tdList.push({...td,id:getUUID(),originalId:td.id,rowspan:rowspanRemain,value:cloneTd.value,rowList:cloneTd.rowList})

@@ -24,8 +24,8 @@ export function input(data: string, host: CanvasEvent) {
   // 移除合成前，缓存设置的默认样式设置
   const defaultStyle =
     rangeManager.getDefaultStyle() || host.compositionInfo?.defaultStyle || null
-  // 移除合成输入
-  removeComposingInput(host)
+  // 合成输入内容(单元格拆分后, compositionInfo中的元素列表不再直接影响真实元素,这里传入真实列表进行合成)
+  const elementList = composingInputElements(host, draw.getElementList())
   if (!isComposing) {
     const cursor = draw.getCursor()
     cursor.clearAgentDomValue()
@@ -34,7 +34,6 @@ export function input(data: string, host: CanvasEvent) {
   const text = data.replaceAll(`\n`, ZERO)
   const { startIndex, endIndex } = rangeManager.getRange()
   // 格式化元素
-  const elementList = draw.getElementList()
   const copyElement = rangeManager.getRangeAnchorStyle(elementList, endIndex)
   if (!copyElement) return
   const isDesignMode = draw.isDesignMode()
@@ -103,14 +102,14 @@ export function input(data: string, host: CanvasEvent) {
   }
   if (~curIndex) {
     rangeManager.setRange(curIndex, curIndex)
-    draw.render({
+    // 组合输入期间不渲染,防止单元格分页组合内容跨页导致渲染问题
+    !isComposing && draw.render({
       curIndex,
       isSubmitHistory: !isComposing
     })
   }
   if (isComposing) {
     host.compositionInfo = {
-      elementList,
       value: text,
       startIndex: curIndex - inputData.length,
       endIndex: curIndex,
@@ -118,12 +117,16 @@ export function input(data: string, host: CanvasEvent) {
     }
   }
 }
-
 export function removeComposingInput(host: CanvasEvent) {
   if (!host.compositionInfo) return
-  const { elementList, startIndex, endIndex } = host.compositionInfo
+  host.compositionInfo = null
+}
+export function composingInputElements(host: CanvasEvent,elementList: IElement[]){
+  if (!host.compositionInfo) return elementList
+  const { startIndex, endIndex } = host.compositionInfo
   elementList.splice(startIndex + 1, endIndex - startIndex)
   const rangeManager = host.getDraw().getRange()
   rangeManager.setRange(startIndex, startIndex)
-  host.compositionInfo = null
+  removeComposingInput(host);
+  return elementList
 }
