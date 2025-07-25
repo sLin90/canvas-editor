@@ -58,6 +58,7 @@ import { Control } from './control/Control'
 import {
   deleteSurroundElementList,
   formatElementList,
+  getAnchorElement,
   getIsBlockElement,
   getSlimCloneElementList,
   pickSurroundElementList,
@@ -1646,6 +1647,7 @@ export class Draw {
 
               // 追加拆分表格
               const cloneElement = deepClone(element)
+              cloneElement.originalId = element.originalId ?? element.id
               cloneElement.pagingId = pagingId
               cloneElement.pagingIndex = element.pagingIndex! + 1
               // 处理分页重复表头
@@ -2640,6 +2642,19 @@ export class Draw {
 
   public render(payload?: IDrawOption) {
     this.renderCount++
+    let curElement: IElement | null
+    const { endIndex, isCrossRowCol } = this.range.getRange()
+    const positionContext = this.position.getPositionContext()
+    if (isCrossRowCol) {
+      // 单元格选择以当前表格定位
+      const originalElementList = this.getOriginalElementList()
+      curElement = originalElementList[positionContext.index!]
+    } else {
+      const index = ~endIndex ? endIndex : 0
+      // 行首以第一个非换行符元素定位
+      const elementList = this.getElementList()
+      curElement = getAnchorElement(elementList, index)
+    }
     const { header, footer } = this.options
     const {
       isSubmitHistory = true,
@@ -2648,7 +2663,7 @@ export class Draw {
       isLazy = true,
       isInit = false,
       isSourceHistory = false,
-      isFirstRender = false
+      isFirstRender = false,
     } = payload || {}
     let { curIndex } = payload || {}
     const innerWidth = this.getInnerWidth()
@@ -2731,6 +2746,43 @@ export class Draw {
     }
     // 光标重绘
     if (isSetCursor) {
+      // 检查当前光标对应的元素位置
+      // 解决当前光标在拆分出来的单元格中重新计算后被合并导致通过position无法获取当前元素列表的bug
+      if(curElement?.tableId){
+        const { index } = positionContext
+        const originalElementList = this.getOriginalElementList();
+        const positionElement = originalElementList[index!];
+        if(curElement.tableId !== positionElement?.id){
+          // 当前元素位置发生改变
+          // 向前找当前元素
+          const startIndex = index!>originalElementList.length? originalElementList.length-1: index!-1;
+          findElLoop:
+          for (let i = startIndex; i >= 0; i--){
+            const element = originalElementList[i];
+            if([element.originalId,element.id].includes(curElement.tableId)){
+              // 是当前表格
+              for (const [trIndex,tr] of element.trList!.entries()) {
+                for (const [tdIndex,td] of tr.tdList!.entries()) {
+                 const findIndex = td.value.findIndex((el)=>el===curElement)
+                  if(findIndex>=0){
+                    // 找到了
+                    positionContext.index = i;
+                    positionContext.tableId = element.id;
+                    positionContext.trIndex = trIndex;
+                    positionContext.trId = tr.id;
+                    positionContext.tdIndex = tdIndex;
+                    positionContext.tdId = td.id;
+                    curIndex = findIndex;
+                    this.position.setPositionContext(positionContext)
+                    this.range.setRange(curIndex,curIndex)
+                    break findElLoop;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
       curIndex = this.setCursor(curIndex)
     } else if (this.range.getIsSelection()) {
       // 存在选区时仅定位避免事件无法捕获
@@ -2755,7 +2807,7 @@ export class Draw {
       if (
         isCompute &&
         !this.isReadonly() &&
-        this.position.getPositionContext().isTable
+        positionContext.isTable
       ) {
         this.tableTool.render()
       }
@@ -2782,34 +2834,43 @@ export class Draw {
         }
       }
     })
+
     // 修复光标位置
     this.fixPosition();
   }
 
-  public fixPosition(){
+  public fixPosition(prev = false): number | undefined{
+    let newStartIndex: number | undefined = undefined
     const positionContext = this.position.getPositionContext()
     if(positionContext.isTable){
       // 渲染完成后修复单元格拆分光标位置
       const list = this.getElementList()
       const startIndex = this.range.getRange().startIndex;
-      if(startIndex >= list.length){
+      if(prev || startIndex >= list.length){
         // 超出索引时, 需要找到拆分后的单元格 并且将光标改变至正确位置
-        const td = this.getTd();
+        const curTd = this.getTd();
         const elementList = this.getOriginalElementList()
-        positionContext.index! += 1
+        positionContext.index! += prev ? -1 : 1
         const table = elementList[positionContext.index!]
-        const tr = table.trList?.[0];
-        positionContext.trIndex = 0
-        const nextTd = table.trList?.[0].tdList.find(({linkTdPrevId})=> td?.id === linkTdPrevId)
-        positionContext.tableId = table.id
-        positionContext.trId = tr?.id
-        positionContext.tdId = nextTd?.id
+        newStartIndex = startIndex - list.length;
+        for (let trIndex=0;trIndex<  table.trList!.length;trIndex++) {
+          const tr = table.trList![trIndex];
+          const findTd = tr.tdList.find((td)=> prev ? curTd?.linkTdPrevId === td.id : curTd?.id === td.linkTdPrevId)
+          if(findTd){
+            positionContext.trIndex = trIndex
+            positionContext.tableId = table.id
+            positionContext.trId = tr.id
+            positionContext.tdId = findTd?.id
+            newStartIndex = prev ? findTd.value.length - 1 : newStartIndex
+            break;
+          }
+        }
         this.position.setPositionContext(positionContext)
-        const newStartIndex = startIndex - list.length;
         this.range.setRange(newStartIndex,newStartIndex)
         this.setCursor(newStartIndex)
       }
     }
+    return newStartIndex;
   }
 
   public setCursor(curIndex: number | undefined) {

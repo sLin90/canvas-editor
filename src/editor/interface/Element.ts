@@ -77,6 +77,7 @@ export interface ITableElement {
   trId?: string
   tableId?: string
   conceptId?: string
+  originalId?: string // 原始表格id
   pagingId?: string // 用于区分拆分的表格同属一个源表格
   pagingIndex?: number // 拆分的表格索引
 }
