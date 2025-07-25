@@ -30,7 +30,7 @@ export function backspace(evt: KeyboardEvent, host: CanvasEvent) {
   // 删除操作
   const { startIndex, endIndex, isCrossRowCol } = rangeManager.getRange()
   let curIndex: number | null
-  let isSplitTd = false;
+  let needFixPosition = false;
   if (isCrossRowCol) {
     // 表格跨行列选中时清空单元格内容
     const rowCol = draw.getTableParticle().getRangeRowCol()
@@ -65,6 +65,7 @@ export function backspace(evt: KeyboardEvent, host: CanvasEvent) {
     const isCollapsed = rangeManager.getIsCollapsed()
     const elementList = draw.getElementList()
     const positionContext = position.getPositionContext()
+    let isSplitTd = false
     if(positionContext.isTable){
       const td = draw.getTd()
       if(td?.originalId){
@@ -101,6 +102,8 @@ export function backspace(evt: KeyboardEvent, host: CanvasEvent) {
       draw.spliceElementList(elementList, index, 1)
     }
     curIndex = isCollapsed ? index - 1 : startIndex
+    // 拆分单元格 没有内容 或者 内容只剩占位符是需要修复位置
+    needFixPosition = isSplitTd && (curIndex<0 || (curIndex===0 && !!elementList[curIndex].splitTdTag))
   }
   draw.getGlobalEvent().setCanvasEventAbility()
   if (curIndex === null) {
@@ -110,7 +113,7 @@ export function backspace(evt: KeyboardEvent, host: CanvasEvent) {
       isSubmitHistory: false
     })
   } else {
-    if(isSplitTd && curIndex <= 0){
+    if(needFixPosition){
       // 修复光标位置
       curIndex = draw.fixPosition(true) ?? curIndex
     }else{
