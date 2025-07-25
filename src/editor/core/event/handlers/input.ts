@@ -34,7 +34,7 @@ export function input(data: string, host: CanvasEvent) {
   const text = data.replaceAll(`\n`, ZERO)
   const { startIndex, endIndex } = rangeManager.getRange()
   // 格式化元素
-  const copyElement = rangeManager.getRangeAnchorStyle(elementList, endIndex)
+  const copyElement = rangeManager.getRangeAnchorStyle(elementList, startIndex)
   if (!copyElement) return
   const isDesignMode = draw.isDesignMode()
   const inputData: IElement[] = splitText(text).map(value => {
@@ -93,9 +93,6 @@ export function input(data: string, host: CanvasEvent) {
     // 组合输入期间不处理元素内容
     if(!isComposing){
       const start = startIndex + 1
-      if (startIndex !== endIndex) {
-        draw.spliceElementList(elementList, start, endIndex - startIndex)
-      }
       formatElementContext(elementList, inputData, startIndex, {
         editorOptions: draw.getOptions()
       })
@@ -129,6 +126,8 @@ export function removeComposingInput(host: CanvasEvent) {
 export function composingInputElements(host: CanvasEvent,elementList: IElement[]){
   if (!host.compositionInfo || host.isComposing) return elementList
   const { startIndex, endIndex } = host.compositionInfo
-  elementList.splice(startIndex + 1, endIndex - startIndex)
+  if(startIndex!==endIndex){
+    host.getDraw().spliceElementList(elementList,startIndex + 1,endIndex - startIndex)
+  }
   return elementList
 }

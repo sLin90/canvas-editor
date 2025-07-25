@@ -64,16 +64,16 @@ export function backspace(evt: KeyboardEvent, host: CanvasEvent) {
     const { index } = cursorPosition
     const isCollapsed = rangeManager.getIsCollapsed()
     const elementList = draw.getElementList()
+    const positionContext = position.getPositionContext()
+    if(positionContext.isTable){
+      const td = draw.getTd()
+      if(td?.originalId){
+        // 拆分行
+        isSplitTd = true;
+      }
+    }
     // 判断是否允许删除
     if (isCollapsed && index === 0) {
-      const positionContext = position.getPositionContext()
-      if(positionContext.isTable){
-        const td = draw.getTd()
-        if(td?.originalId){
-          // 拆分行
-          isSplitTd = true;
-        }
-      }
       const firstElement = elementList[index]
       if (!isSplitTd && firstElement.value === ZERO) {
         // 取消首字符列表设置
@@ -110,7 +110,7 @@ export function backspace(evt: KeyboardEvent, host: CanvasEvent) {
       isSubmitHistory: false
     })
   } else {
-    if(isSplitTd && curIndex === -1){
+    if(isSplitTd && curIndex <= 0){
       // 修复光标位置
       curIndex = draw.fixPosition(true) ?? curIndex
     }else{

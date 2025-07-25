@@ -1431,7 +1431,7 @@ export class Draw {
                   if(td.originalId){
                     const originalTd = element.trList!.map((tr)=>tr.tdList).flat().find(({id})=>id===td.originalId)!
                     // 合并value
-                    originalTd.value.push(...td.value)
+                    originalTd.value.push(...td.value.filter((item)=>!item.splitTdTag))
                     originalTd.rowspan = originalTd.originalRowspan ?? originalTd.rowspan
                     return false
                   }
@@ -1603,6 +1603,18 @@ export class Draw {
                       originTr.minHeight = usableHeight;
                       cloneTr.minHeight = Math.max(originTr.originalMinHeight - usableHeight, defaultTrMinHeight);
                     }
+
+                    cloneTr.tdList.forEach((td)=>{
+                      if(td.value.length){
+                        if(td.value[0].value!==ZERO){
+                          // 如果没有占位符,插入占位符
+                          td.value.unshift({
+                            value: ZERO,
+                            splitTdTag: true
+                          })
+                        }
+                      }
+                    })
                     // 新的表格行插入到指定位置
                     trList.splice(deleteStart+1,0, cloneTr)
                     deleteStart+=1;
@@ -2755,31 +2767,18 @@ export class Draw {
         if(curElement.tableId !== positionElement?.id){
           // 当前元素位置发生改变
           // 向前找当前元素
-          const startIndex = index!>originalElementList.length? originalElementList.length-1: index!-1;
-          findElLoop:
-          for (let i = startIndex; i >= 0; i--){
-            const element = originalElementList[i];
-            if([element.originalId,element.id].includes(curElement.tableId)){
-              // 是当前表格
-              for (const [trIndex,tr] of element.trList!.entries()) {
-                for (const [tdIndex,td] of tr.tdList!.entries()) {
-                 const findIndex = td.value.findIndex((el)=>el===curElement)
-                  if(findIndex>=0){
-                    // 找到了
-                    positionContext.index = i;
-                    positionContext.tableId = element.id;
-                    positionContext.trIndex = trIndex;
-                    positionContext.trId = tr.id;
-                    positionContext.tdIndex = tdIndex;
-                    positionContext.tdId = td.id;
-                    curIndex = findIndex;
-                    this.position.setPositionContext(positionContext)
-                    this.range.setRange(curIndex,curIndex)
-                    break findElLoop;
-                  }
-                }
-              }
-            }
+          const findRes = this.findTableChildrenElement(true,curElement.tableId,curElement)
+          if(findRes){
+            // 找到了
+            positionContext.index = findRes.originalIndex;
+            positionContext.tableId = findRes.table.id;
+            positionContext.trIndex = findRes.trIndex;
+            positionContext.trId = findRes.tr.id;
+            positionContext.tdIndex = findRes.tdIndex;
+            positionContext.tdId = findRes.td.id;
+            curIndex = findRes.elementIndex;
+            this.position.setPositionContext(positionContext)
+            this.range.setRange(curIndex,curIndex)
           }
         }
       }
@@ -2852,8 +2851,11 @@ export class Draw {
         const elementList = this.getOriginalElementList()
         positionContext.index! += prev ? -1 : 1
         const table = elementList[positionContext.index!]
+        if(!table){
+          return
+        }
         newStartIndex = startIndex - list.length;
-        for (let trIndex=0;trIndex<  table.trList!.length;trIndex++) {
+        for (let trIndex=0;trIndex < table.trList!.length;trIndex++) {
           const tr = table.trList![trIndex];
           const findTd = tr.tdList.find((td)=> prev ? curTd?.linkTdPrevId === td.id : curTd?.id === td.linkTdPrevId)
           if(findTd){
@@ -2861,7 +2863,7 @@ export class Draw {
             positionContext.tableId = table.id
             positionContext.trId = tr.id
             positionContext.tdId = findTd?.id
-            newStartIndex = prev ? findTd.value.length - 1 : newStartIndex
+            newStartIndex = prev ? findTd.value.length - 1 : newStartIndex + findTd.value.filter((e)=>e.splitTdTag).length
             break;
           }
         }
@@ -2958,4 +2960,47 @@ export class Draw {
     // 日期控件
     this.getDateParticle().clearDatePicker()
   }
+
+  public findTableChildrenElement(prev:boolean,tableId: string, findTarget:IElement|((curElement:IElement)=>any)): FindTableChildrenElementRes | undefined{
+    const position = this.position.getPositionContext();
+    const { index } = position;
+    const originalElementList = this.getOriginalElementList();
+    let startIndex = index!+1;
+    if(prev){
+      startIndex = index !> originalElementList.length ? originalElementList.length-1: index!-1;
+    }
+    for (let i = startIndex; prev ? i >= 0 : i < originalElementList.length; prev ? i-- : i++){
+      const element = originalElementList[i];
+      if([element.originalId,element.id].includes(tableId)){
+        // 是当前表格
+        for (const [trIndex,tr] of element.trList!.entries()) {
+          for (const [tdIndex,td] of tr.tdList!.entries()) {
+            const findIndex = td.value.findIndex(typeof findTarget === "function" ? findTarget : (el)=>el===findTarget)
+            if(findIndex>=0){
+              return {
+                originalIndex: i,
+                table: element,
+                tr,
+                trIndex,
+                td,
+                tdIndex,
+                elementIndex: findIndex,
+              }
+            }
+          }
+        }
+      }
+    }
+    return undefined
+  }
+}
+
+interface FindTableChildrenElementRes{
+  originalIndex: number
+  table: IElement,
+  tr: ITr,
+  trIndex: number,
+  td: ITd,
+  tdIndex: number,
+  elementIndex: number
 }
