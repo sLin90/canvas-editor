@@ -2848,9 +2848,9 @@ export class Draw {
       if(prev || startIndex >= list.length){
         // 超出索引时, 需要找到拆分后的单元格 并且将光标改变至正确位置
         const curTd = this.getTd();
+        const index = positionContext.index! + (prev ? -1 : 1)
         const elementList = this.getOriginalElementList()
-        positionContext.index! += prev ? -1 : 1
-        const table = elementList[positionContext.index!]
+        const table = elementList[index]
         if(!table){
           return
         }
@@ -2859,6 +2859,7 @@ export class Draw {
           const tr = table.trList![trIndex];
           const findTd = tr.tdList.find((td)=> prev ? curTd?.linkTdPrevId === td.id : curTd?.id === td.linkTdPrevId)
           if(findTd){
+            positionContext.index = index
             positionContext.trIndex = trIndex
             positionContext.tableId = table.id
             positionContext.trId = tr.id
@@ -2965,9 +2966,9 @@ export class Draw {
     const position = this.position.getPositionContext();
     const { index } = position;
     const originalElementList = this.getOriginalElementList();
-    let startIndex = index!+1;
+    let startIndex = index!;
     if(prev){
-      startIndex = index !> originalElementList.length ? originalElementList.length-1: index!-1;
+      startIndex = index !> originalElementList.length ? originalElementList.length-1: index!;
     }
     for (let i = startIndex; prev ? i >= 0 : i < originalElementList.length; prev ? i-- : i++){
       const element = originalElementList[i];
