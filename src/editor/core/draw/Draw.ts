@@ -1593,6 +1593,8 @@ export class Draw {
                   cloneTd.value = rowList.map((row)=>row.elementList).flat()
                 });
 
+                // 还原数据
+                let  restoreValue = true
                 const originTrHasContent = originTr.tdList.some((td)=>td.rowList?.length)
                 const cloneTrHasContent = cloneTr.tdList.some((td)=>td.rowList?.length)
                 const minHeightOverflow = originTr.minHeight! > usableHeight
@@ -1617,13 +1619,9 @@ export class Draw {
                     })
                     // 新的表格行插入到指定位置
                     trList.splice(deleteStart+1,0, cloneTr)
-                    deleteStart+=1;
+                    deleteStart += 1;
                     deleteCount = trList.length - deleteStart
-                  }else if(cloneTrHasContent){
-                    // 未插入新行 立即还原
-                    originTdList.forEach((td, index)=>{
-                      td.value.push(...cloneTdList[index].value)
-                    })
+                    restoreValue = false;
                   }
                   originTdList.forEach((td)=>{
                     if(td.rowspan>1){
@@ -1639,9 +1637,17 @@ export class Draw {
                         // 存在跨行的单元格减少跨一行 并且当前行新增跨行分割的单元格
                         originTr.tdList.push({...td,id:getUUID(),originalId:td.id,rowspan:rowspanRemain,value:cloneTd.value,rowList:cloneTd.rowList})
                         originTr.tdList.sort((a,b)=>a.colIndex!-b.colIndex!)
+                        // 防止被还原了
+                        cloneTd.value = [];
                       }
                     }
                   })
+                  if(restoreValue){
+                    // 未插入新行 立即还原
+                    originTdList.forEach((td, index)=>{
+                      td.value.push(...cloneTdList[index].value)
+                    })
+                  }
                   break
                 }
               }
@@ -2760,7 +2766,7 @@ export class Draw {
     if (isSetCursor) {
       // 检查当前光标对应的元素位置
       // 解决当前光标在拆分出来的单元格中重新计算后被合并导致通过position无法获取当前元素列表的bug
-      if(curElement?.tableId){
+      if(isCompute && curElement?.tableId){
         const { index } = positionContext
         const originalElementList = this.getOriginalElementList();
         const positionElement = originalElementList[index!];
@@ -2768,7 +2774,7 @@ export class Draw {
           // 当前元素位置发生改变
           // 向前找当前元素
           const findRes = this.findTableChildrenElement(true,curElement.tableId,curElement)
-          if(findRes){
+          if(findRes && positionContext.index!==findRes.originalIndex){
             // 找到了
             positionContext.index = findRes.originalIndex;
             positionContext.tableId = findRes.table.id;
