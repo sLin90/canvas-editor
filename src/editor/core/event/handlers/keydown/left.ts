@@ -93,51 +93,69 @@ export function left(evt: KeyboardEvent, host: CanvasEvent) {
       })
       anchorStartIndex = lastTd.value.length - 1
       anchorEndIndex = anchorStartIndex
-      draw.getTableTool().render()
     } else if (element.tableId) {
       // 在表格单元格内&在首位则往前移动单元格
       if (startIndex === 0) {
         const originalElementList = draw.getOriginalElementList()
-        const trList = originalElementList[positionContext.index!].trList!
-        outer: for (let r = 0; r < trList.length; r++) {
-          const tr = trList[r]
-          if (tr.id !== element.trId) continue
-          const tdList = tr.tdList
-          for (let d = 0; d < tdList.length; d++) {
-            const td = tdList[d]
-            if (td.id !== element.tdId) continue
-            // 移动到表格前
-            if (r === 0 && d === 0) {
-              position.setPositionContext({
-                isTable: false
-              })
-              anchorStartIndex = positionContext.index! - 1
-              anchorEndIndex = anchorStartIndex
-              draw.getTableTool().dispose()
-            } else {
-              // 上一个单元格
-              let preTrIndex = r
-              let preTdIndex = d - 1
-              if (preTdIndex < 0) {
-                preTrIndex = r - 1
-                preTdIndex = trList[preTrIndex].tdList.length - 1
+        const currentElement = originalElementList[positionContext.index!];
+        const currentTd = draw.getTd()
+        if(currentTd?.linkTdPrevId){
+          // 当前单元格是跨页拆分的单元格，找到前一页单元格
+          const linkTdRes = draw.findLinkTdPrev(positionContext.index!,currentTd.linkTdPrevId)
+          if(linkTdRes){
+            position.setPositionContext({
+              ...positionContext,
+              isTable: true,
+              index: linkTdRes.originalIndex,
+              trIndex: linkTdRes.trIndex,
+              tdId: linkTdRes.td.id,
+              trId: linkTdRes.tr.id,
+              tableId: linkTdRes.table.id
+            })
+            anchorStartIndex = linkTdRes.td.value.length - 1
+            anchorEndIndex = anchorStartIndex
+          }
+        }else{
+          const trList = currentElement.trList!
+          outer: for (let r = 0; r < trList.length; r++) {
+            const tr = trList[r]
+            if (tr.id !== element.trId) continue
+            const tdList = tr.tdList
+            for (let d = 0; d < tdList.length; d++) {
+              const td = tdList[d]
+              if (td.id !== element.tdId) continue
+              // 移动到表格前
+              if (r === 0 && d === 0) {
+                position.setPositionContext({
+                  isTable: false
+                })
+                anchorStartIndex = positionContext.index! - 1
+                anchorEndIndex = anchorStartIndex
+                draw.getTableTool().dispose()
+              } else {
+                // 上一个单元格
+                let preTrIndex = r
+                let preTdIndex = d - 1
+                if (preTdIndex < 0) {
+                  preTrIndex = r - 1
+                  preTdIndex = trList[preTrIndex].tdList.length - 1
+                }
+                const preTr = trList[preTrIndex]
+                const preTd = preTr.tdList[preTdIndex]
+                position.setPositionContext({
+                  isTable: true,
+                  index: positionContext.index,
+                  trIndex: preTrIndex,
+                  tdIndex: preTdIndex,
+                  tdId: preTd.id,
+                  trId: preTr.id,
+                  tableId: element.tableId
+                })
+                anchorStartIndex = preTd.value.length - 1
+                anchorEndIndex = anchorStartIndex
               }
-              const preTr = trList[preTrIndex]
-              const preTd = preTr.tdList[preTdIndex]
-              position.setPositionContext({
-                isTable: true,
-                index: positionContext.index,
-                trIndex: preTrIndex,
-                tdIndex: preTdIndex,
-                tdId: preTd.id,
-                trId: preTr.id,
-                tableId: element.tableId
-              })
-              anchorStartIndex = preTd.value.length - 1
-              anchorEndIndex = anchorStartIndex
-              draw.getTableTool().render()
+              break outer
             }
-            break outer
           }
         }
       }
@@ -152,6 +170,7 @@ export function left(evt: KeyboardEvent, host: CanvasEvent) {
   // 设置上下文
   rangeManager.setRange(anchorStartIndex, anchorEndIndex)
   const isAnchorCollapsed = anchorStartIndex === anchorEndIndex
+  draw.updateTableTool()
   draw.render({
     curIndex: isAnchorCollapsed ? anchorStartIndex : undefined,
     isSetCursor: isAnchorCollapsed,

@@ -1353,6 +1353,7 @@ export class Draw {
     for (let i = 0; i < elementList.length; i++) {
       const curRow: IRow = rowList[rowList.length - 1]
       const element = elementList[i]
+      this.clearElementEffect(element);
       const rowMargin =
         defaultBasicRowMarginHeight * (element.rowMargin ?? defaultRowMargin)
       const metrics: IElementMetrics = {
@@ -1413,10 +1414,6 @@ export class Draw {
       } else if (element.type === ElementType.TABLE) {
         // 表格分页处理进度：https://github.com/Hufe921/canvas-editor/issues/41
         // 查看后续表格是否属于同一个源表格-存在即合并
-        element.trList?.forEach((tr)=>{
-          tr.minHeight = tr.originalMinHeight ?? tr.minHeight;
-          delete tr.originalMinHeight;
-        })
         if (element.pagingId) {
           let tableIndex = i + 1
           let combineCount = 0
@@ -1546,6 +1543,7 @@ export class Draw {
                     originTd.originalRowspan = originTd.rowspan;
                     return findTd ? {
                       ...findTd,
+                      id:getUUID(),
                       originalId: findTd.originalId ?? findTd.id,
                       linkTdPrevId: findTd.id,
                       tdIndex: cIdx,
@@ -1607,6 +1605,7 @@ export class Draw {
                     }
 
                     cloneTr.tdList.forEach((td)=>{
+                      td.original.linkTdNextId = td.id
                       if(td.value.length){
                         if(td.value[0].value!==ZERO){
                           // 如果没有占位符,插入占位符
@@ -1635,7 +1634,8 @@ export class Draw {
                       } else {
                         // 原始行没有内容 当前行直接到下一页
                         // 存在跨行的单元格减少跨一行 并且当前行新增跨行分割的单元格
-                        originTr.tdList.push({...td,id:getUUID(),originalId:td.id,rowspan:rowspanRemain,value:cloneTd.value,rowList:cloneTd.rowList})
+                        cloneTd.original.linkTdNextId = cloneTd.id
+                        originTr.tdList.push({...td,...cloneTd,rowspan:rowspanRemain})
                         originTr.tdList.sort((a,b)=>a.colIndex!-b.colIndex!)
                         // 防止被还原了
                         cloneTd.value = [];
@@ -2785,6 +2785,7 @@ export class Draw {
             curIndex = findRes.elementIndex;
             this.position.setPositionContext(positionContext)
             this.range.setRange(curIndex,curIndex)
+            this.updateTableTool()
           }
         }
       }
@@ -2877,6 +2878,7 @@ export class Draw {
         this.position.setPositionContext(positionContext)
         this.range.setRange(newStartIndex,newStartIndex)
         this.setCursor(newStartIndex)
+        this.updateTableTool()
       }
     }
     return newStartIndex;
@@ -2968,6 +2970,24 @@ export class Draw {
     this.getDateParticle().clearDatePicker()
   }
 
+  // 更新表格工具栏
+  public updateTableTool(){
+    if(this.position.getPositionContext().isTable){
+      this.setPageNo(this.position.getPositionList()[0].pageNo)
+      this.getTableTool().render()
+    }
+  }
+
+  public clearElementEffect(element:IElement){
+    element.trList?.forEach((tr)=>{
+      tr.minHeight = tr.originalMinHeight ?? tr.minHeight;
+      delete tr.originalMinHeight;
+      tr.tdList.forEach((td)=>{
+        delete td.linkTdNextId
+      })
+    })
+  }
+
   public findTableChildrenElement(prev:boolean,tableId: string, findTarget:IElement|((curElement:IElement)=>any)): FindTableChildrenElementRes | undefined{
     const position = this.position.getPositionContext();
     const { index } = position;
@@ -3000,6 +3020,45 @@ export class Draw {
     }
     return undefined
   }
+
+  public findLinkTdPrev(index:number,linkTdPrevId:string):FindTdRes|undefined{
+    const originalElementList = this.getOriginalElementList()
+    const originalIndex = index-1;
+    const prevElement = originalElementList[originalIndex]
+    for (let trIndex=prevElement.trList!.length-1;trIndex>=0;trIndex--){
+      const tr = prevElement.trList![trIndex];
+      const findTd = tr.tdList.find((td)=>td.id===linkTdPrevId)
+      if(findTd){
+        return {
+          originalIndex,
+          table:prevElement,
+          trIndex,
+          tr,
+          td:findTd,
+        }
+      }
+    }
+    return undefined
+  }
+  public findLinkTdNext(index:number,tdId:string):FindTdRes|undefined{
+    const originalElementList = this.getOriginalElementList()
+    const originalIndex = index+1;
+    const prevElement = originalElementList[originalIndex]
+    for (let trIndex=0;trIndex<prevElement.trList!.length;trIndex++){
+      const tr = prevElement.trList![trIndex];
+      const findTd = tr.tdList.find((td)=>td.id===tdId)
+      if(findTd){
+        return {
+          originalIndex,
+          table:prevElement,
+          trIndex,
+          tr,
+          td:findTd,
+        }
+      }
+    }
+    return undefined
+  }
 }
 
 interface FindTableChildrenElementRes{
@@ -3010,4 +3069,11 @@ interface FindTableChildrenElementRes{
   td: ITd,
   tdIndex: number,
   elementIndex: number
+}
+interface FindTdRes{
+  originalIndex: number
+  table: IElement,
+  trIndex: number,
+  tr: ITr,
+  td: ITd,
 }

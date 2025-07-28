@@ -85,18 +85,40 @@ export function updown(evt: KeyboardEvent, host: CanvasEvent) {
     const { index, trIndex, tdIndex, tableId } = positionContext
     if (isUp) {
       // 向上移动-第一行则移出到表格外，否则上一行相同列位置
+      const originalElementList = draw.getOriginalElementList()
       if (trIndex === 0) {
-        position.setPositionContext({
-          isTable: false
-        })
-        anchorStartIndex = index! - 1
-        anchorEndIndex = anchorStartIndex
-        draw.getTableTool().dispose()
+        const currentElement = originalElementList[index!];
+        if(currentElement.originalId){
+          const prevIndex = index!-1;
+          const prevElement = originalElementList[prevIndex];
+          for (let prevTrIndex = prevElement.trList!.length-1; prevTrIndex>=0; prevTrIndex--){
+            const findTd = prevElement.trList![prevTrIndex].tdList.find((td)=>td.tdIndex===tdIndex)
+            if(findTd?.value.length){
+              // 存在内容
+              position.setPositionContext({
+                isTable:true,
+                tableId:prevElement.id,
+                index:prevIndex,
+                trIndex:prevTrIndex,
+                tdIndex:tdIndex,
+              })
+              anchorStartIndex = findTd.value.length-1
+              anchorEndIndex = findTd.value.length-1
+              break;
+            }
+          }
+        }else{
+          position.setPositionContext({
+            isTable: false
+          })
+          anchorStartIndex = index! - 1
+          anchorEndIndex = anchorStartIndex
+          draw.getTableTool().dispose()
+        }
       } else {
         // 查找上一行相同列索引位置信息
         let preTrIndex = -1
         let preTdIndex = -1
-        const originalElementList = draw.getOriginalElementList()
         const trList = originalElementList[index!].trList!
         // 当前单元格所在列实际索引
         const curTdColIndex = trList[trIndex!].tdList[tdIndex!].colIndex!
@@ -130,19 +152,42 @@ export function updown(evt: KeyboardEvent, host: CanvasEvent) {
         })
         anchorStartIndex = preTd.value.length - 1
         anchorEndIndex = anchorStartIndex
-        draw.getTableTool().render()
       }
     } else {
       // 向下移动-最后一行则移出表格外，否则下一行相同列位置
       const originalElementList = draw.getOriginalElementList()
-      const trList = originalElementList[index!].trList!
+      const currentElement = originalElementList[index!];
+      const trList = currentElement.trList!
+
       if (trIndex === trList.length - 1) {
-        position.setPositionContext({
-          isTable: false
-        })
-        anchorStartIndex = index!
-        anchorEndIndex = anchorStartIndex
-        draw.getTableTool().dispose()
+        const nextIndex = index!+1;
+        const nextElement = originalElementList[nextIndex];
+        const isSplitTable = nextElement && [currentElement.id,currentElement.originalId].includes(nextElement.originalId)
+        if(isSplitTable){
+          for (let nextTdIndex=tdIndex!;nextTdIndex>=0;nextTdIndex--){
+            const nextTd = nextElement.trList![0].tdList[nextTdIndex]
+            if(nextTd.value.length){
+              // 存在内容
+              position.setPositionContext({
+                isTable:true,
+                index:nextIndex,
+                tableId:nextElement.id,
+                trIndex:0,
+                tdIndex:nextTdIndex,
+              })
+              anchorStartIndex = 0
+              anchorEndIndex = 0
+              break;
+            }
+          }
+        }else{
+          position.setPositionContext({
+            isTable: false
+          })
+          anchorStartIndex = index!
+          anchorEndIndex = anchorStartIndex
+          draw.getTableTool().dispose()
+        }
       } else {
         // 查找下一行相同列索引位置信息
         let nexTrIndex = -1
@@ -179,7 +224,6 @@ export function updown(evt: KeyboardEvent, host: CanvasEvent) {
         })
         anchorStartIndex = nextTd.value.length - 1
         anchorEndIndex = anchorStartIndex
-        draw.getTableTool().render()
       }
     }
   } else {
@@ -314,7 +358,6 @@ export function updown(evt: KeyboardEvent, host: CanvasEvent) {
         anchorStartIndex = tdPositionIndex
         anchorEndIndex = anchorStartIndex
         positionList = position.getPositionList()
-        draw.getTableTool().render()
       }
     }
   }
@@ -337,4 +380,5 @@ export function updown(evt: KeyboardEvent, host: CanvasEvent) {
     cursorPosition: positionList[isUp ? anchorStartIndex : anchorEndIndex],
     direction: isUp ? MoveDirection.UP : MoveDirection.DOWN
   })
+  draw.updateTableTool()
 }
