@@ -1577,7 +1577,7 @@ export class Draw {
                   let maxHeight = usableHeight
                   if(originTd.rowspan>1){
                     // 跨行单元格，最大高度需要加上已经跨过的所有tr高度之和
-                    const rowSpanTrList = trList.slice(originTd.trIndex,r - originTd.trIndex!);
+                    const rowSpanTrList = trList.slice(originTd.trIndex,originTd.trIndex! + r - originTd.trIndex!);
                     maxHeight += rowSpanTrList.reduce((pre,cur)=>cur.height * scale + pre,0)
                   }
                   while (originTd.mainHeight! > maxHeight && originTd.rowList?.length){
