@@ -97,6 +97,7 @@ import { Actuator } from '../actuator/Actuator'
 import { TableOperate } from './particle/table/TableOperate'
 import { Area } from './interactive/Area'
 import { Badge } from './frame/Badge'
+import { IPositionContext } from '../../interface/Position'
 
 export class Draw {
   private container: HTMLDivElement
@@ -675,6 +676,15 @@ export class Draw {
 
   public getTd(): ITd | null {
     const positionContext = this.position.getPositionContext()
+    const { index, trIndex, tdIndex, isTable } = positionContext
+    if (isTable) {
+      const elementList = this.getOriginalElementList()
+      return elementList[index!].trList![trIndex!].tdList[tdIndex!]
+    }
+    return null
+  }
+
+  public getTdByPosition(positionContext: IPositionContext): ITd | null {
     const { index, trIndex, tdIndex, isTable } = positionContext
     if (isTable) {
       const elementList = this.getOriginalElementList()
@@ -1426,10 +1436,21 @@ export class Draw {
                 nexTr.tdList = nexTr.tdList.filter((td)=>{
                   // td内容合并
                   if(td.originalId){
-                    const originalTd = element.trList!.map((tr)=>tr.tdList).flat().find(({id})=>id===td.originalId)!
-                    // 合并value
-                    originalTd.value.push(...td.value.filter((item)=>!item.splitTdTag))
-                    originalTd.rowspan = originalTd.originalRowspan ?? originalTd.rowspan
+                    for (let trIndex = 0; trIndex < element.trList!.length; trIndex++){
+                      const tr = element.trList![trIndex]
+                      const originalTd = tr.tdList.find(({id})=>id===td.originalId)!
+                      if(originalTd){
+                        // 合并value
+                        originalTd.value.push(
+                          // 过滤拆分单元格标记
+                          ...td.value.filter((item)=>!item.splitTdTag)
+                            // 更新元素的表格信息
+                            .map((val)=>this.updateElementTableInfo(val,element,tr,originalTd))
+                        )
+                        originalTd.rowspan = originalTd.originalRowspan ?? originalTd.rowspan
+                        break;
+                      }
+                    }
                     return false
                   }
                   return true;
@@ -1540,16 +1561,17 @@ export class Draw {
                     if(findTd){
                       lastColspan = findTd.colspan
                     }
+                    const tdId = getUUID();
                     originTd.originalRowspan = originTd.rowspan;
                     return findTd ? {
                       ...findTd,
-                      id:getUUID(),
+                      id: tdId,
                       originalId: findTd.originalId ?? findTd.id,
                       linkTdPrevId: findTd.id,
                       tdIndex: cIdx,
                       original: originTd,
                     } : {
-                      id:getUUID(),
+                      id: tdId,
                       originalId: originTd.originalId ?? originTd.id,
                       linkTdPrevId: originTd.id,
                       tdIndex: cIdx,
@@ -1677,6 +1699,17 @@ export class Draw {
               }
               cloneElement.trList = cloneTrList
               cloneElement.id = getUUID()
+              // 更新表格内部元素的所属信息
+              cloneElement.trList?.forEach((tr)=>{
+                tr.tdList.forEach((td)=>{
+                  delete td.valueStartIndex
+                  if(td.linkTdPrevId){
+                    const linkTd = this.findLinkTdPrev(i+1, td.linkTdPrevId!)
+                    td.valueStartIndex = linkTd ? (linkTd.td.valueStartIndex?? 0) + linkTd.td.value.length : 0
+                  }
+                  td.value.forEach((element)=>this.updateElementTableInfo(element,cloneElement,tr,td))
+                })
+              })
               this.spliceElementList(elementList, i + 1, 0, [cloneElement])
 
               // 计算出表格高度
@@ -2149,10 +2182,18 @@ export class Draw {
       positionList,
       startIndex,
       zone,
-      isDrawLineBreak = !lineBreak.disabled
+      isDrawLineBreak = !lineBreak.disabled,
+      td
     } = payload
     const isPrintMode = this.mode === EditorMode.PRINT
-    const { isCrossRowCol, tableId } = this.range.getRange()
+    const range = this.range.getRange();
+    const {
+      isCrossRowCol,
+      tableId,
+      zone: currentZone,
+      pagingTd,
+    } = range
+
     let index = startIndex
     for (let i = 0; i < rowList.length; i++) {
       const curRow = rowList[i]
@@ -2382,12 +2423,18 @@ export class Draw {
         } else if (preElement?.strikeout) {
           this.strikeout.render(ctx)
         }
-        // 选区记录
-        const {
-          zone: currentZone,
+        let {
           startIndex,
-          endIndex
-        } = this.range.getRange()
+          endIndex,
+        } = range
+        // 是否是跨页单元格选区
+        let isPagingTdRange = false;
+        if(td && pagingTd && [td.originalId,td.id].includes(pagingTd.originalId)){
+          // 跨页单元格选区
+          isPagingTdRange = true;
+          startIndex = pagingTd.startIndex - (td.valueStartIndex??0)
+          endIndex = pagingTd.endIndex - (td.valueStartIndex??0)
+        }
         if (
           currentZone === zone &&
           startIndex !== endIndex &&
@@ -2398,7 +2445,7 @@ export class Draw {
           // 表格需限定上下文
           if (
             (!positionContext.isTable && !element.tdId) ||
-            positionContext.tdId === element.tdId
+            positionContext.tdId === element.tdId || isPagingTdRange
           ) {
             // 从行尾开始-绘制最小宽度
             if (startIndex === index) {
@@ -2445,7 +2492,8 @@ export class Draw {
                 startIndex: 0,
                 innerWidth: (td.width! - tdPaddingWidth) * scale,
                 zone,
-                isDrawLineBreak
+                isDrawLineBreak,
+                td,
               })
             }
           }
@@ -2988,6 +3036,13 @@ export class Draw {
     })
   }
 
+  private updateElementTableInfo(element:IElement,table:IElement,tr:ITr,td:ITd){
+    element.tableId = table.id;
+    element.trId = tr.id;
+    element.tdId = td.id;
+    return element;
+  }
+
   public findTableChildrenElement(prev:boolean,tableId: string, findTarget:IElement|((curElement:IElement)=>any)): FindTableChildrenElementRes | undefined{
     const position = this.position.getPositionContext();
     const { index } = position;
@@ -3058,6 +3113,9 @@ export class Draw {
       }
     }
     return undefined
+  }
+  public isSplitTd(tdA: ITd, tdB: ITd): boolean{
+    return (!!tdA?.originalId || !!tdB?.originalId) && (tdA?.originalId===tdB?.originalId || tdA?.id===tdB?.originalId || tdA?.originalId===tdB?.id)
   }
 }
 

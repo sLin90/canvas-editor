@@ -29,6 +29,10 @@ export interface ICompositionInfo {
   cancel?: boolean
 }
 
+export interface MouseDownStartPosition extends ICurrentPosition{
+  originalIndex?: number // 鼠标按下时，原始元素索引, ICurrentPosition 中的index 冲突，单元格的时候是内部value的index
+}
+
 export class CanvasEvent {
   public isAllowSelection: boolean
   public isComposing: boolean
@@ -40,7 +44,7 @@ export class CanvasEvent {
   public cacheElementList: IElement[] | null
   public cachePositionList: IElementPosition[] | null
   public cachePositionContext: IPositionContext | null
-  public mouseDownStartPosition: ICurrentPosition | null
+  public mouseDownStartPosition: MouseDownStartPosition | null
 
   private draw: Draw
   private pageContainer: HTMLDivElement

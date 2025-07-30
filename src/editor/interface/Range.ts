@@ -11,6 +11,12 @@ export interface IRange {
   startTrIndex?: number
   endTrIndex?: number
   zone?: EditorZone
+  pagingTd?: PagingTdRang // 当前选区存在跨分页单元格
+}
+export interface PagingTdRang {
+  originalId: string
+  startIndex: number
+  endIndex: number
 }
 
 export type RangeRowArray = Map<number, number[]>

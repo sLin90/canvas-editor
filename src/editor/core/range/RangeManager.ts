@@ -12,6 +12,7 @@ import {
   IRange,
   IRangeElementStyle,
   IRangeParagraphInfo,
+  PagingTdRang,
   RangeRowArray,
   RangeRowMap
 } from '../../interface/Range'
@@ -328,16 +329,18 @@ export class RangeManager {
     )
   }
 
-  public getIsPointInRange(x: number, y: number): boolean {
+  public getIsPointInRange(x: number, y: number, curPageNo: number): boolean {
     const { startIndex, endIndex } = this.range
     const positionList = this.position.getPositionList()
     for (let p = startIndex + 1; p <= endIndex; p++) {
       const position = positionList[p]
       if (!position) break
       const {
-        coordinate: { leftTop, rightBottom }
+        coordinate: { leftTop, rightBottom },
+        pageNo,
       } = positionList[p]
       if (
+        curPageNo === pageNo &&
         x >= leftTop[0] &&
         x <= rightBottom[0] &&
         y >= leftTop[1] &&
@@ -417,7 +420,8 @@ export class RangeManager {
     startTdIndex?: number,
     endTdIndex?: number,
     startTrIndex?: number,
-    endTrIndex?: number
+    endTrIndex?: number,
+    pagingTd?: PagingTdRang
   ) {
     // 判断光标是否改变
     const isChange = this.getIsRangeChange(
@@ -443,6 +447,7 @@ export class RangeManager {
         startTrIndex ||
         endTrIndex
       )
+      this.range.pagingTd = pagingTd
       this.setDefaultStyle(null)
     }
     this.range.zone = this.draw.getZone().getZone()

@@ -37,4 +37,5 @@ export interface ITd {
   linkTdPrevId?: string // 连接单元格ID(前一个拆分段单元格)
   linkTdNextId?: string // 连接单元格ID(后一个拆分段单元格)
   originalRowspan?: number // 拆分前原始的跨行列数
+  valueStartIndex?: number // 原始值拆分的开始索引
 }

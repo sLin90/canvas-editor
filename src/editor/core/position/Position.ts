@@ -57,6 +57,7 @@ export class Position {
     sourceElementList: IElement[]
   ): IElementPosition[] {
     const { index, trIndex, tdIndex } = this.positionContext
+    console.log("@cc index",index)
     return (
       sourceElementList[index!].trList![trIndex!].tdList[tdIndex!]
         .positionList || []
@@ -341,6 +342,7 @@ export class Position {
   }
 
   public setPositionContext(payload: IPositionContext) {
+    console.warn("@cc setPositionContext",payload)
     this.eventBus.emit('positionContextChange', {
       value: payload,
       oldValue: this.positionContext

@@ -2,6 +2,8 @@ import { ImageDisplay } from '../../../dataset/enum/Common'
 import { ControlComponent } from '../../../dataset/enum/Control'
 import { ElementType } from '../../../dataset/enum/Element'
 import { CanvasEvent } from '../CanvasEvent'
+import { IElement } from '../../../interface/Element'
+import { PagingTdRang } from '../../../interface/Range'
 
 export function mousemove(evt: MouseEvent, host: CanvasEvent) {
   const draw = host.getDraw()
@@ -71,16 +73,41 @@ export function mousemove(evt: MouseEvent, host: CanvasEvent) {
     index: startIndex,
     isTable: startIsTable,
     tdIndex: startTdIndex,
+    tdId: startTdId,
     trIndex: startTrIndex,
     tableId: startTableId
   } = host.mouseDownStartPosition
   const endIndex = isTable ? tdValueIndex! : index
   // 判断是否是表格跨行/列
   const rangeManager = draw.getRange()
+  // 是否是跨页单元格
+  type SplitItem = {index:number,element:IElement,originalId?:string}
+  let splitTd:[SplitItem,SplitItem]|undefined = undefined;
+  if(tdId !== startTdId && !!tdId && !!startTdId){
+    // 判断是否是跨页单元格
+    const startTd = draw.getTdByPosition({
+      ...host.mouseDownStartPosition,
+      isTable:!!host.mouseDownStartPosition.tableId,
+      index:host.mouseDownStartPosition.originalIndex ?? host.mouseDownStartPosition.index
+    })!
+    const endTd = draw.getTdByPosition({
+      ...positionResult,
+      isTable:!!positionResult.tableId,
+      index:positionResult.index
+    })!
+    if(draw.isSplitTd(startTd,endTd)){
+      const startValueIndex = (startTd.valueStartIndex??0) + startIndex;
+      const endValueIndex = (endTd.valueStartIndex??0) + tdValueIndex!;
+      splitTd = [
+        {index:startValueIndex,element:startTd.value[startIndex],originalId:startTd.originalId },
+        {index:endValueIndex,element:endTd.value[tdValueIndex!],originalId:endTd.originalId },
+      ]
+    }
+  }
   if (
     isTable &&
     startIsTable &&
-    (tdIndex !== startTdIndex || trIndex !== startTrIndex)
+    (tdId !== startTdId) && !splitTd
   ) {
     rangeManager.setRange(
       endIndex,
@@ -103,18 +130,22 @@ export function mousemove(evt: MouseEvent, host: CanvasEvent) {
   } else {
     let end = ~endIndex ? endIndex : 0
     // 开始或结束位置存在表格，但是非相同表格则忽略选区设置
-    if ((startIsTable || isTable) && startTableId !== tableId) return
+    if ((startIsTable || isTable) && startTableId !== tableId && !splitTd) {
+      return
+    }
     // 开始位置
     let start = startIndex
-    if (start > end) {
-      // prettier-ignore
-      [start, end] = [end, start]
+    let startElement: IElement | undefined
+    let endElement: IElement | undefined
+    if(splitTd){
+      [{element: startElement}, {element: endElement}] = splitTd
+    } else {
+      const elementList = draw.getElementList()
+      startElement = elementList[start + 1]
+      endElement = elementList[end]
     }
     if (start === end) return
     // 背景文本禁止选区
-    const elementList = draw.getElementList()
-    const startElement = elementList[start + 1]
-    const endElement = elementList[end]
     if (
       startElement?.controlComponent === ControlComponent.PLACEHOLDER &&
       endElement?.controlComponent === ControlComponent.PLACEHOLDER &&
@@ -122,7 +153,20 @@ export function mousemove(evt: MouseEvent, host: CanvasEvent) {
     ) {
       return
     }
-    rangeManager.setRange(start, end)
+    if (start > end) {
+      // prettier-ignore
+      [start, end] = [end, start]
+    }
+    let pagingTd: PagingTdRang | undefined
+    if(splitTd){
+      const [startIndex, endIndex] = [splitTd[0].index,splitTd[1].index].sort((a,b)=>a-b)
+      pagingTd = {
+        originalId: splitTd[0].originalId ?? splitTd[1].originalId!,
+        startIndex: startIndex,
+        endIndex: endIndex
+      }
+    }
+    rangeManager.setRange(start, end, undefined, undefined, undefined, undefined, undefined, pagingTd)
   }
   // 绘制
   draw.render({

@@ -2,6 +2,7 @@ import { ImageDisplay } from '../dataset/enum/Common'
 import { EditorMode, EditorZone } from '../dataset/enum/Editor'
 import { IElement, IElementPosition } from './Element'
 import { IRow } from './Row'
+import { ITd } from './table/Td'
 
 export interface IDrawOption {
   curIndex?: number
@@ -37,6 +38,7 @@ export interface IDrawRowPayload {
   innerWidth: number
   zone?: EditorZone
   isDrawLineBreak?: boolean
+  td?: ITd
 }
 
 export interface IDrawFloatPayload {
