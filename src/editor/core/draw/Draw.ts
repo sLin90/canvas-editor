@@ -3061,7 +3061,7 @@ export class Draw {
     }
     for (let i = startIndex; prev ? i >= 0 : i < originalElementList.length; prev ? i-- : i++){
       const element = originalElementList[i];
-      if([element.originalId,element.id].includes(tableId)){
+      if(element && [element.originalId,element.id].includes(tableId)){
         // 是当前表格
         for (const [trIndex,tr] of element.trList!.entries()) {
           for (const [tdIndex,td] of tr.tdList!.entries()) {

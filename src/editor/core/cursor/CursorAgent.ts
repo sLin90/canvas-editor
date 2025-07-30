@@ -40,13 +40,10 @@ export class CursorAgent {
       'compositionend',
       this._compositionend.bind(this)
     )
-    agentCursorDom.addEventListener(
-      'keydown',
-      this._keydown.bind(this)
-    )
-    this.eventBus.on("rangeStyleChange",(payload)=>{
+    agentCursorDom.addEventListener('keydown', this._keydown.bind(this))
+    this.eventBus.on('rangeStyleChange', payload => {
       // 监听当前选中字体大小 动态修改代理光标字体大小
-      this.agentCursorDom.style.fontSize = Math.max(payload.size,18) + 'px';
+      this.agentCursorDom.style.fontSize = Math.max(payload.size, 18) + 'px'
     })
   }
 
@@ -78,20 +75,27 @@ export class CursorAgent {
   }
 
   private _compositionstart() {
-    this.agentCursorDom.style.zIndex = "1000"
-    this.agentCursorDom.style.width = '0px';
+    this.agentCursorDom.style.zIndex = '1000'
+    this.agentCursorDom.style.width = '0px'
+    this.agentCursorDom.style.color = 'initial'
+    this.agentCursorDom.style.background = 'initial'
     this.canvasEvent.compositionstart()
   }
+
   private _compositionupdate() {
-    this.agentCursorDom.style.width = this.agentCursorDom.scrollWidth + 'px';
+    this.agentCursorDom.style.width = this.agentCursorDom.scrollWidth + 'px'
   }
 
   private _compositionend(evt: CompositionEvent) {
-    this.agentCursorDom.style.zIndex = "-1"
+    this.agentCursorDom.style.zIndex = '-1'
+    this.agentCursorDom.style.width = '0px'
+    this.agentCursorDom.style.color = 'transparent'
+    this.agentCursorDom.style.background = 'transparent'
     this.canvasEvent.compositionend(evt)
   }
+
   private _keydown(evt: KeyboardEvent) {
-    if(this.canvasEvent.isComposing && evt.code==="Escape"){
+    if (this.canvasEvent.isComposing && evt.code === 'Escape') {
       this.canvasEvent.compositionCancel()
     }
   }
