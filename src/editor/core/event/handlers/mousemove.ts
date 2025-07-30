@@ -3,7 +3,7 @@ import { ControlComponent } from '../../../dataset/enum/Control'
 import { ElementType } from '../../../dataset/enum/Element'
 import { CanvasEvent } from '../CanvasEvent'
 import { IElement } from '../../../interface/Element'
-import { PagingTdRang } from '../../../interface/Range'
+import { SplitTdRange } from '../../../interface/Range'
 
 export function mousemove(evt: MouseEvent, host: CanvasEvent) {
   const draw = host.getDraw()
@@ -81,34 +81,40 @@ export function mousemove(evt: MouseEvent, host: CanvasEvent) {
   // 判断是否是表格跨行/列
   const rangeManager = draw.getRange()
   // 是否是跨页单元格
-  type SplitItem = {index:number,element:IElement,originalId?:string}
-  let splitTd:[SplitItem,SplitItem]|undefined = undefined;
-  if(tdId !== startTdId && !!tdId && !!startTdId){
+  type SplitItem = { index: number; element: IElement; originalId?: string }
+  let splitTd: [SplitItem, SplitItem] | undefined = undefined
+  if (tdId !== startTdId && !!tdId && !!startTdId) {
     // 判断是否是跨页单元格
     const startTd = draw.getTdByPosition({
       ...host.mouseDownStartPosition,
-      isTable:!!host.mouseDownStartPosition.tableId,
-      index:host.mouseDownStartPosition.originalIndex ?? host.mouseDownStartPosition.index
+      isTable: !!host.mouseDownStartPosition.tableId,
+      index:
+        host.mouseDownStartPosition.originalIndex ??
+        host.mouseDownStartPosition.index
     })!
     const endTd = draw.getTdByPosition({
       ...positionResult,
-      isTable:!!positionResult.tableId,
-      index:positionResult.index
+      isTable: !!positionResult.tableId,
+      index: positionResult.index
     })!
-    if(draw.isSplitTd(startTd,endTd)){
-      const startValueIndex = (startTd.valueStartIndex??0) + startIndex;
-      const endValueIndex = (endTd.valueStartIndex??0) + tdValueIndex!;
+    if (draw.isSplitTd(startTd, endTd)) {
+      const startValueIndex = (startTd.valueStartIndex ?? 0) + startIndex
+      const endValueIndex = (endTd.valueStartIndex ?? 0) + tdValueIndex!
       splitTd = [
-        {index:startValueIndex,element:startTd.value[startIndex],originalId:startTd.originalId },
-        {index:endValueIndex,element:endTd.value[tdValueIndex!],originalId:endTd.originalId },
+        {
+          index: startValueIndex,
+          element: startTd.value[startIndex],
+          originalId: startTd.originalId
+        },
+        {
+          index: endValueIndex,
+          element: endTd.value[tdValueIndex!],
+          originalId: endTd.originalId
+        }
       ]
     }
   }
-  if (
-    isTable &&
-    startIsTable &&
-    (tdId !== startTdId) && !splitTd
-  ) {
+  if (isTable && startIsTable && tdId !== startTdId && !splitTd) {
     rangeManager.setRange(
       endIndex,
       endIndex,
@@ -137,8 +143,8 @@ export function mousemove(evt: MouseEvent, host: CanvasEvent) {
     let start = startIndex
     let startElement: IElement | undefined
     let endElement: IElement | undefined
-    if(splitTd){
-      [{element: startElement}, {element: endElement}] = splitTd
+    if (splitTd) {
+      [{ element: startElement }, { element: endElement }] = splitTd
     } else {
       const elementList = draw.getElementList()
       startElement = elementList[start + 1]
@@ -157,16 +163,27 @@ export function mousemove(evt: MouseEvent, host: CanvasEvent) {
       // prettier-ignore
       [start, end] = [end, start]
     }
-    let pagingTd: PagingTdRang | undefined
-    if(splitTd){
-      const [startIndex, endIndex] = [splitTd[0].index,splitTd[1].index].sort((a,b)=>a-b)
-      pagingTd = {
+    let splitTdRange: SplitTdRange | undefined
+    if (splitTd) {
+      const [startIndex, endIndex] = [splitTd[0].index, splitTd[1].index].sort(
+        (a, b) => a - b
+      )
+      splitTdRange = {
         originalId: splitTd[0].originalId ?? splitTd[1].originalId!,
         startIndex: startIndex,
         endIndex: endIndex
       }
     }
-    rangeManager.setRange(start, end, undefined, undefined, undefined, undefined, undefined, pagingTd)
+    rangeManager.setRange(
+      start,
+      end,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      splitTdRange
+    )
   }
   // 绘制
   draw.render({

@@ -12,9 +12,9 @@ import {
   IRange,
   IRangeElementStyle,
   IRangeParagraphInfo,
-  PagingTdRang,
   RangeRowArray,
-  RangeRowMap
+  RangeRowMap,
+  SplitTdRange
 } from '../../interface/Range'
 import { getAnchorElement } from '../../utils/element'
 import { Draw } from '../draw/Draw'
@@ -114,8 +114,13 @@ export class RangeManager {
   }
 
   public getSelection(): IElement[] | null {
-    const { startIndex, endIndex } = this.range
+    const { startIndex, endIndex, splitTdRange } = this.range
     if (startIndex === endIndex) return null
+    if (splitTdRange) {
+      // 跨页单元格选区特殊处理
+      const list = this.draw.getSplitTdValues(splitTdRange.originalId)!
+      return list.slice(splitTdRange.startIndex + 1, splitTdRange.endIndex + 1)
+    }
     const elementList = this.draw.getElementList()
     return elementList.slice(startIndex + 1, endIndex + 1)
   }
@@ -337,7 +342,7 @@ export class RangeManager {
       if (!position) break
       const {
         coordinate: { leftTop, rightBottom },
-        pageNo,
+        pageNo
       } = positionList[p]
       if (
         curPageNo === pageNo &&
@@ -421,7 +426,7 @@ export class RangeManager {
     endTdIndex?: number,
     startTrIndex?: number,
     endTrIndex?: number,
-    pagingTd?: PagingTdRang
+    splitTdRange?: SplitTdRange
   ) {
     // 判断光标是否改变
     const isChange = this.getIsRangeChange(
@@ -447,7 +452,7 @@ export class RangeManager {
         startTrIndex ||
         endTrIndex
       )
-      this.range.pagingTd = pagingTd
+      this.range.splitTdRange = splitTdRange
       this.setDefaultStyle(null)
     }
     this.range.zone = this.draw.getZone().getZone()

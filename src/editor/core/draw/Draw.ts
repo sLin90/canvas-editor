@@ -172,6 +172,7 @@ export class Draw {
   private intersectionPageNo: number
   private lazyRenderIntersectionObserver: IntersectionObserver | null
   private printModeData: Required<IEditorData> | null
+  private splitTdValueMap: Map<string, IElement[]> = new Map() // 缓存拆分单元格，用于快速获取
 
   constructor(
     rootContainer: HTMLElement,
@@ -1706,6 +1707,11 @@ export class Draw {
                   if(td.linkTdPrevId){
                     const linkTd = this.findLinkTdPrev(i+1, td.linkTdPrevId!)
                     td.valueStartIndex = linkTd ? (linkTd.td.valueStartIndex?? 0) + linkTd.td.value.length : 0
+                    if(this.splitTdValueMap.has(td.originalId!)){
+                      this.splitTdValueMap.get(td.originalId!)!.push(...td.value)
+                    }else if(linkTd){
+                      this.splitTdValueMap.set(td.originalId!, [...linkTd.td.value,...td.value])
+                    }
                   }
                   td.value.forEach((element)=>this.updateElementTableInfo(element,cloneElement,tr,td))
                 })
@@ -2191,7 +2197,7 @@ export class Draw {
       isCrossRowCol,
       tableId,
       zone: currentZone,
-      pagingTd,
+      splitTdRange,
     } = range
 
     let index = startIndex
@@ -2428,12 +2434,12 @@ export class Draw {
           endIndex,
         } = range
         // 是否是跨页单元格选区
-        let isPagingTdRange = false;
-        if(td && pagingTd && [td.originalId,td.id].includes(pagingTd.originalId)){
+        let isSplitTdRange = false;
+        if(td && splitTdRange && [td.originalId,td.id].includes(splitTdRange.originalId)){
           // 跨页单元格选区
-          isPagingTdRange = true;
-          startIndex = pagingTd.startIndex - (td.valueStartIndex??0)
-          endIndex = pagingTd.endIndex - (td.valueStartIndex??0)
+          isSplitTdRange = true;
+          startIndex = splitTdRange.startIndex - (td.valueStartIndex??0)
+          endIndex = splitTdRange.endIndex - (td.valueStartIndex??0)
         }
         if (
           currentZone === zone &&
@@ -2445,7 +2451,7 @@ export class Draw {
           // 表格需限定上下文
           if (
             (!positionContext.isTable && !element.tdId) ||
-            positionContext.tdId === element.tdId || isPagingTdRange
+            positionContext.tdId === element.tdId || isSplitTdRange
           ) {
             // 从行尾开始-绘制最小宽度
             if (startIndex === index) {
@@ -2738,6 +2744,8 @@ export class Draw {
     const oldPageSize = this.pageRowList.length
     // 计算文档信息
     if (isCompute) {
+      // 需要重新计算文档信息 立即清空缓存
+      this.splitTdValueMap.clear();
       // 清空浮动元素位置信息
       this.position.setFloatPositionList([])
       if (isPagingMode) {
@@ -3116,6 +3124,9 @@ export class Draw {
   }
   public isSplitTd(tdA: ITd, tdB: ITd): boolean{
     return (!!tdA?.originalId || !!tdB?.originalId) && (tdA?.originalId===tdB?.originalId || tdA?.id===tdB?.originalId || tdA?.originalId===tdB?.id)
+  }
+  public getSplitTdValues(originalId: string){
+    return this.splitTdValueMap.get(originalId)
   }
 }
 

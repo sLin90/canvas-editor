@@ -57,7 +57,6 @@ export class Position {
     sourceElementList: IElement[]
   ): IElementPosition[] {
     const { index, trIndex, tdIndex } = this.positionContext
-    console.log("@cc index",index)
     return (
       sourceElementList[index!].trList![trIndex!].tdList[tdIndex!]
         .positionList || []

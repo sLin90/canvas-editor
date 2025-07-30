@@ -11,9 +11,9 @@ export interface IRange {
   startTrIndex?: number
   endTrIndex?: number
   zone?: EditorZone
-  pagingTd?: PagingTdRang // 当前选区存在跨分页单元格
+  splitTdRange?: SplitTdRange // 当前选区存在跨分页单元格
 }
-export interface PagingTdRang {
+export interface SplitTdRange {
   originalId: string
   startIndex: number
   endIndex: number
