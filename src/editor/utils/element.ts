@@ -596,10 +596,10 @@ export function pickElementAttr(
     zipAttrs.push(...extraPickAttrs)
   }
   const element: IElement = {
-    value: payload?.value === ZERO ? `\n` : payload?.value ?? ''
+    value: payload.value === ZERO ? `\n` : payload.value
   }
   zipAttrs.forEach(attr => {
-    const value = payload?.[attr] as never
+    const value = payload[attr] as never
     if (value !== undefined) {
       element[attr] = value
     }
