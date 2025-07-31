@@ -581,9 +581,11 @@ export function isSameElementExceptValue(
   }
   return true
 }
+
 interface IPickElementOption {
   extraPickAttrs?: Array<keyof IElement>
 }
+
 export function pickElementAttr(
   payload: IElement,
   option: IPickElementOption = {}
@@ -594,7 +596,7 @@ export function pickElementAttr(
     zipAttrs.push(...extraPickAttrs)
   }
   const element: IElement = {
-    value: payload?.value === ZERO ? `\n` : payload?.value ?? ""
+    value: payload?.value === ZERO ? `\n` : payload?.value ?? ''
   }
   zipAttrs.forEach(attr => {
     const value = payload?.[attr] as never
@@ -610,6 +612,7 @@ interface IZipElementListOption {
   isClassifyArea?: boolean
   isClone?: boolean
 }
+
 export function zipElementList(
   payload: IElement[],
   options: IZipElementListOption = {}
@@ -726,7 +729,42 @@ export function zipElementList(
           const nextElement = elementList[tableIndex]
           if (nextElement.pagingId === element.pagingId) {
             element.height! += nextElement.height!
-            element.trList!.push(...nextElement.trList!)
+            const nextTrList = nextElement
+              .trList!.filter(tr => !tr.pagingRepeat)
+              .filter(nextTr => {
+                nextTr.tdList = nextTr.tdList.filter(td => {
+                  // td内容合并
+                  if (td.originalId) {
+                    for (
+                      let trIndex = 0;
+                      trIndex < element.trList!.length;
+                      trIndex++
+                    ) {
+                      const tr = element.trList![trIndex]
+                      const originalTd = tr.tdList.find(
+                        ({ id }) => id === td.originalId
+                      )!
+                      if (originalTd) {
+                        // 合并value
+                        originalTd.value.push(
+                          ...td.value.filter(item => !item.splitTdTag)
+                        )
+                        originalTd.rowspan =
+                          originalTd.originalRowspan ?? originalTd.rowspan
+                        break
+                      }
+                    }
+                    return false
+                  }
+                  return true
+                })
+                return !!nextTr.tdList.length
+              })
+            element.trList!.push(...nextTrList)
+            // 还原minHeight
+            element.trList?.forEach(
+              tr => (tr.minHeight = tr.originalMinHeight ?? tr.minHeight)
+            )
             tableIndex++
             combineCount++
           } else {
@@ -1142,6 +1180,7 @@ export function createDomFromElementList(
   options?: IEditorOption
 ) {
   const editorOptions = mergeOption(options)
+
   function buildDom(payload: IElement[]): HTMLDivElement {
     const clipboardDom = document.createElement('div')
     for (let e = 0; e < payload.length; e++) {
@@ -1327,6 +1366,7 @@ export function createDomFromElementList(
     }
     return clipboardDom
   }
+
   // 按行布局分类创建dom
   const clipboardDom = document.createElement('div')
   const groupElementList = groupElementListByRowFlex(elementList)
@@ -1419,6 +1459,7 @@ export function getElementListByHTML(
   options: IGetElementListByHTMLOption
 ): IElement[] {
   const elementList: IElement[] = []
+
   function findTextNode(dom: Element | Node) {
     if (dom.nodeType === 3) {
       const element = convertTextNodeToElement(dom)
@@ -1630,6 +1671,7 @@ export function getElementListByHTML(
       }
     }
   }
+
   // 追加dom
   const clipboardDom = document.createElement('div')
   clipboardDom.innerHTML = htmlText
@@ -1716,6 +1758,7 @@ export function getTextFromElementList(elementList: IElement[]) {
     }
     return text
   }
+
   return buildText(zipElementList(elementList))
 }
 
