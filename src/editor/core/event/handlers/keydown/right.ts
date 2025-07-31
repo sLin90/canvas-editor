@@ -97,10 +97,12 @@ export function right(evt: KeyboardEvent, host: CanvasEvent) {
     } else if (element.tableId) {
       // 在表格单元格内&单元格元素最后
       if (!nextElement) {
-        const currentTd = draw.getTd();
+        const currentTd = draw.getTd()
         // 存在拆分单元格
-        const linkTdRes = currentTd?.linkTdNextId ? draw.findLinkTdNext(positionContext.index!,currentTd.linkTdNextId): undefined
-        if(linkTdRes?.td.value.length){
+        const linkTdRes = currentTd?.linkTdNextId
+          ? draw.findLinkTdNext(positionContext.index!, currentTd.linkTdNextId)
+          : undefined
+        if (linkTdRes?.td.value.length) {
           position.setPositionContext({
             ...positionContext,
             isTable: true,
@@ -112,7 +114,7 @@ export function right(evt: KeyboardEvent, host: CanvasEvent) {
           })
           anchorStartIndex = 0
           anchorEndIndex = anchorStartIndex
-        }else{
+        } else {
           const originalElementList = draw.getOriginalElementList()
           const trList = originalElementList[positionContext.index!].trList!
           outer: for (let r = 0; r < trList.length; r++) {

@@ -19,8 +19,7 @@ interface IDrawTableBorderOption {
   isDrawFullBorder?: boolean
 }
 
-export interface ComputeTrHeightOptions{
-}
+export interface ComputeTrHeightOptions {}
 
 export class TableParticle {
   private draw: Draw
@@ -561,21 +560,25 @@ export class TableParticle {
   }
 
   // 向前查找跨行的单元格
-  findPreRowSpanTd(trList: ITr[], startTrIndex: number, colIndex: number): ITd | undefined  {
-    for (let trIdx = startTrIndex; trIdx>=0; trIdx--){
-      const findTd = trList[trIdx].tdList.find((td)=>td.colIndex === colIndex)
-      if(findTd){
-        return  findTd;
+  findPreRowSpanTd(
+    trList: ITr[],
+    startTrIndex: number,
+    colIndex: number
+  ): ITd | undefined {
+    for (let trIdx = startTrIndex; trIdx >= 0; trIdx--) {
+      const findTd = trList[trIdx].tdList.find(td => td.colIndex === colIndex)
+      if (findTd) {
+        return findTd
       }
     }
-    return undefined;
+    return undefined
   }
 
-  computeTrHeight(element: IElement, computeRowList?: (td: ITd)=> IRow[]){
+  computeTrHeight(element: IElement, computeRowList?: (td: ITd) => IRow[]) {
     const {
       scale,
       table: { tdPadding, defaultTrMinHeight }
-    } = this.options;
+    } = this.options
 
     const tdPaddingHeight = tdPadding[0] + tdPadding[2]
     const trList = element.trList!
@@ -588,64 +591,75 @@ export class TableParticle {
     // 计算表格行列
     this.computeRowColInfo(element)
     // 跨行单元格集合
-    const rowSpanMap:Record<string,{td: ITd, rowSpan:[number,number], extraHeight:number, preHeight: number, preMinHeight: number}> = {}
-    const lastRowSpanId:Record<number, string> = {};
+    const rowSpanMap: Record<
+      string,
+      {
+        td: ITd
+        rowSpan: [number, number]
+        extraHeight: number
+        preHeight: number
+        preMinHeight: number
+      }
+    > = {}
+    const lastRowSpanId: Record<number, string> = {}
     // 计算表格内元素信息
-    trList.forEach((tr,trIndex)=>{
-      const tdHeightList:number[] = [];
-      element.colgroup!.forEach((_, colIndex)=>{
-        const td = tr.tdList.find((td)=>td.colIndex===colIndex)
-        if(td){
+    trList.forEach((tr, trIndex) => {
+      const tdHeightList: number[] = []
+      element.colgroup!.forEach((_, colIndex) => {
+        const td = tr.tdList.find(td => td.colIndex === colIndex)
+        if (td) {
           const rowList = computeRowList ? computeRowList(td) : td.rowList!
           const rowHeight = rowList.reduce((pre, cur) => pre + cur.height, 0)
           td.rowList = rowList
           // 移除缩放导致的行高变化-渲染时会进行缩放调整
           const curTdHeight = rowHeight / scale + tdPaddingHeight
-          td.mainHeight = curTdHeight;
+          td.mainHeight = curTdHeight
           // 内容高度大于当前单元格高度需增加
-          if(td.rowspan>1){
-            lastRowSpanId[td.colIndex!] = td.id!;
+          if (td.rowspan > 1) {
+            lastRowSpanId[td.colIndex!] = td.id!
             // 跨行时 记录表格行额外高度
             rowSpanMap[td.id!] = {
               td,
-              rowSpan: [trIndex, trIndex+td.rowspan-1],
-              preHeight:0,
-              preMinHeight:0,
+              rowSpan: [trIndex, trIndex + td.rowspan - 1],
+              preHeight: 0,
+              preMinHeight: 0,
               extraHeight: curTdHeight
             }
-          }else{
+          } else {
             if (td.height! < curTdHeight) {
               td.height = curTdHeight
               td.realHeight = curTdHeight
-              tdHeightList.push(curTdHeight);
+              tdHeightList.push(curTdHeight)
             } else {
-              tdHeightList.push(td.height!);
+              tdHeightList.push(td.height!)
             }
           }
-        }else{
+        } else {
           // 未找到td 说明是跨行单元格
           const rowSpanTd = rowSpanMap[lastRowSpanId[colIndex]]
-          if(rowSpanTd?.rowSpan[1]  == trIndex){
+          if (rowSpanTd?.rowSpan[1] == trIndex) {
             // 当前是跨尾行
-            tdHeightList.push(rowSpanTd.extraHeight);
+            tdHeightList.push(rowSpanTd.extraHeight)
           }
         }
       })
-      const curTrHeight = Math.max(...tdHeightList);
+      const curTrHeight = Math.max(...tdHeightList)
       // 更新跨行单元格额外高度
-      Object.values(rowSpanMap).forEach((data)=>{
-        if(data.rowSpan[0] <= trIndex && data.rowSpan[1] >= trIndex){
+      Object.values(rowSpanMap).forEach(data => {
+        if (data.rowSpan[0] <= trIndex && data.rowSpan[1] >= trIndex) {
           data.extraHeight -= curTrHeight
           data.preHeight += curTrHeight
           data.preMinHeight += tr.minHeight!
         }
       })
-      tr.height = curTrHeight;
-      element.colgroup!.forEach((_,colIndex)=>{
-        const td = tr.tdList.find((td)=>td.colIndex === colIndex) ?? this.findPreRowSpanTd(trList, trIndex, colIndex)
-        if(td){
-          const preHeight = rowSpanMap[td.id!]?.preHeight ?? 0;
-          const preMinHeight = rowSpanMap[td.id!]?.preMinHeight ?? tr.minHeight!;
+      tr.height = curTrHeight
+      element.colgroup!.forEach((_, colIndex) => {
+        const td =
+          tr.tdList.find(td => td.colIndex === colIndex) ??
+          this.findPreRowSpanTd(trList, trIndex, colIndex)
+        if (td) {
+          const preHeight = rowSpanMap[td.id!]?.preHeight ?? 0
+          const preMinHeight = rowSpanMap[td.id!]?.preMinHeight ?? tr.minHeight!
           td.height = curTrHeight + preHeight
           td.realHeight = curTrHeight + preHeight
           td.realMinHeight = preMinHeight

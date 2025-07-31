@@ -26,7 +26,7 @@ import { Dialog } from './components/dialog/Dialog'
 import { formatPrismToken } from './utils/prism'
 import { Signature } from './components/signature/Signature'
 import { debounce, nextTick, scrollIntoView } from './utils'
-import testData from "./test.json"
+import testData from './test.json'
 
 window.onload = function () {
   const isApple =
@@ -36,8 +36,8 @@ window.onload = function () {
   const container = document.querySelector<HTMLDivElement>('.editor')!
   const instance = new Editor(
     container,
-    testData.data as any ?? data,
-    testData.options as any ?? options
+    (testData.data as any) ?? data,
+    (testData.options as any) ?? options
   )
   console.log('实例: ', instance)
   // cypress使用
@@ -352,16 +352,19 @@ window.onload = function () {
   }
   let colIndex = 0
   let rowIndex = 0
+
   // 移除所有格选择
   function removeAllTableCellSelect() {
     tableCellList.forEach(tr => {
       tr.forEach(td => td.classList.remove('active'))
     })
   }
+
   // 设置标题内容
   function setTableTitle(payload: string) {
     tableTitle.innerText = payload
   }
+
   // 恢复初始状态
   function recoveryTable() {
     // 还原选择样式、标题、选择行列
@@ -372,6 +375,7 @@ window.onload = function () {
     // 隐藏panel
     tablePanelContainer.style.display = 'none'
   }
+
   tableDom.onclick = function () {
     console.log('table')
     tablePanelContainer!.style.display = 'block'
@@ -1151,6 +1155,7 @@ window.onload = function () {
   searchDom.title = `搜索与替换(${isApple ? '⌘' : 'Ctrl'}+F)`
   const searchResultDom =
     searchCollapseDom.querySelector<HTMLLabelElement>('.search-result')!
+
   function setSearchResult() {
     const result = instance.command.getSearchNavigateInfo()
     if (result) {
@@ -1160,6 +1165,7 @@ window.onload = function () {
       searchResultDom.innerText = ''
     }
   }
+
   searchDom.onclick = function () {
     console.log('search')
     searchCollapseDom.style.display = 'block'
@@ -1280,6 +1286,7 @@ window.onload = function () {
       appendCatalog(catalogMainDom, catalog)
     }
   }
+
   let isCatalogShow = true
   const catalogDom = document.querySelector<HTMLElement>('.catalog')!
   const catalogModeDom =
@@ -1439,6 +1446,7 @@ window.onload = function () {
   document.addEventListener('fullscreenchange', () => {
     fullscreenDom.classList.toggle('exist')
   })
+
   function toggleFullscreen() {
     console.log('fullscreen')
     if (!document.fullscreenElement) {
@@ -1497,6 +1505,7 @@ window.onload = function () {
 
   // 模拟批注
   const commentDom = document.querySelector<HTMLDivElement>('.comment')!
+
   async function updateComment() {
     const groupIds = await instance.command.getGroupIds()
     for (const comment of commentList) {
@@ -1550,6 +1559,7 @@ window.onload = function () {
       }
     }
   }
+
   // 8. 内部事件监听
   instance.listener.rangeStyleChange = function (payload) {
     // 控件类型

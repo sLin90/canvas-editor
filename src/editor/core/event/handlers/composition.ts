@@ -13,7 +13,7 @@ function compositionend(host: CanvasEvent, evt: CompositionEvent) {
   if (!evt.data) {
     const cancel = host.compositionInfo?.cancel
     removeComposingInput(host)
-    if(!cancel){
+    if (!cancel) {
       const rangeManager = draw.getRange()
       const { endIndex: curIndex } = rangeManager.getRange()
       draw.render({
@@ -31,9 +31,10 @@ function compositionend(host: CanvasEvent, evt: CompositionEvent) {
   const cursor = draw.getCursor()
   cursor.clearAgentDomValue()
 }
+
 function compositionCancel(host: CanvasEvent) {
-  if(host.compositionInfo){
-    host.compositionInfo.cancel = true;
+  if (host.compositionInfo) {
+    host.compositionInfo.cancel = true
   }
 }
 

@@ -13,7 +13,12 @@ import {
   IGetValueOption,
   IPainterOption
 } from '../../interface/Draw'
-import { IEditorData, IEditorOption, IEditorResult, ISetValueOption } from '../../interface/Editor'
+import {
+  IEditorData,
+  IEditorOption,
+  IEditorResult,
+  ISetValueOption
+} from '../../interface/Editor'
 import {
   IElement,
   IElementFillRect,
@@ -53,7 +58,14 @@ import { SubscriptParticle } from './particle/SubscriptParticle'
 import { SeparatorParticle } from './particle/SeparatorParticle'
 import { PageBreakParticle } from './particle/PageBreakParticle'
 import { Watermark } from './frame/Watermark'
-import { EditorComponent, EditorMode, EditorZone, PageMode, PaperDirection, WordBreak } from '../../dataset/enum/Editor'
+import {
+  EditorComponent,
+  EditorMode,
+  EditorZone,
+  PageMode,
+  PaperDirection,
+  WordBreak
+} from '../../dataset/enum/Editor'
 import { Control } from './control/Control'
 import {
   deleteSurroundElementList,
@@ -67,7 +79,10 @@ import {
 import { CheckboxParticle } from './particle/CheckboxParticle'
 import { RadioParticle } from './particle/RadioParticle'
 import { DeepRequired, IPadding } from '../../interface/Common'
-import { ControlComponent, ControlIndentation } from '../../dataset/enum/Control'
+import {
+  ControlComponent,
+  ControlIndentation
+} from '../../dataset/enum/Control'
 import { WorkerManager } from '../worker/WorkerManager'
 import { Previewer } from './particle/previewer/Previewer'
 import { DateParticle } from './particle/date/DateParticle'
@@ -78,7 +93,10 @@ import { I18n } from '../i18n/I18n'
 import { ImageObserver } from '../observer/ImageObserver'
 import { Zone } from '../zone/Zone'
 import { Footer } from './frame/Footer'
-import { IMAGE_ELEMENT_TYPE, TEXTLIKE_ELEMENT_TYPE } from '../../dataset/constant/Element'
+import {
+  IMAGE_ELEMENT_TYPE,
+  TEXTLIKE_ELEMENT_TYPE
+} from '../../dataset/constant/Element'
 import { ListParticle } from './particle/ListParticle'
 import { Placeholder } from './frame/Placeholder'
 import { EventBus } from '../event/eventbus/EventBus'
@@ -1364,7 +1382,7 @@ export class Draw {
     for (let i = 0; i < elementList.length; i++) {
       const curRow: IRow = rowList[rowList.length - 1]
       const element = elementList[i]
-      this.clearElementEffect(element);
+      this.clearElementEffect(element)
       const rowMargin =
         defaultBasicRowMarginHeight * (element.rowMargin ?? defaultRowMargin)
       const metrics: IElementMetrics = {
@@ -1431,33 +1449,48 @@ export class Draw {
           while (tableIndex < elementList.length) {
             const nextElement = elementList[tableIndex]
             if (nextElement.pagingId === element.pagingId) {
-              const nexTrList = nextElement.trList!.filter(
-                  tr => !tr.pagingRepeat
-                ).filter((nexTr)=>{
-                nexTr.tdList = nexTr.tdList.filter((td)=>{
-                  // td内容合并
-                  if(td.originalId){
-                    for (let trIndex = 0; trIndex < element.trList!.length; trIndex++){
-                      const tr = element.trList![trIndex]
-                      const originalTd = tr.tdList.find(({id})=>id===td.originalId)!
-                      if(originalTd){
-                        // 合并value
-                        originalTd.value.push(
-                          // 过滤拆分单元格标记
-                          ...td.value.filter((item)=>!item.splitTdTag)
-                            // 更新元素的表格信息
-                            .map((val)=>this.updateElementTableInfo(val,element,tr,originalTd))
-                        )
-                        originalTd.rowspan = originalTd.originalRowspan ?? originalTd.rowspan
-                        break;
+              const nexTrList = nextElement
+                .trList!.filter(tr => !tr.pagingRepeat)
+                .filter(nexTr => {
+                  nexTr.tdList = nexTr.tdList.filter(td => {
+                    // td内容合并
+                    if (td.originalId) {
+                      for (
+                        let trIndex = 0;
+                        trIndex < element.trList!.length;
+                        trIndex++
+                      ) {
+                        const tr = element.trList![trIndex]
+                        const originalTd = tr.tdList.find(
+                          ({ id }) => id === td.originalId
+                        )!
+                        if (originalTd) {
+                          // 合并value
+                          originalTd.value.push(
+                            // 过滤拆分单元格标记
+                            ...td.value
+                              .filter(item => !item.splitTdTag)
+                              // 更新元素的表格信息
+                              .map(val =>
+                                this.updateElementTableInfo(
+                                  val,
+                                  element,
+                                  tr,
+                                  originalTd
+                                )
+                              )
+                          )
+                          originalTd.rowspan =
+                            originalTd.originalRowspan ?? originalTd.rowspan
+                          break
+                        }
                       }
+                      return false
                     }
-                    return false
-                  }
-                  return true;
+                    return true
+                  })
+                  return !!nexTr.tdList.length
                 })
-                return !!nexTr.tdList.length
-              })
 
               element.trList!.push(...nexTrList)
               element.height! += nextElement.height!
@@ -1474,7 +1507,7 @@ export class Draw {
         }
         element.pagingIndex = element.pagingIndex ?? 0
         // 计算出表格高度
-        this.tableParticle.computeTrHeight(element, (td: ITd)=>{
+        this.tableParticle.computeTrHeight(element, (td: ITd) => {
           return this.computeRowList({
             innerWidth: (td.width! - (tdPadding[1] + tdPadding[3])) * scale,
             elementList: td.value,
@@ -1525,7 +1558,7 @@ export class Draw {
           }
           // 表格高度超过页面高度开始截断行
           // 可用高度
-          let usableHeight = height - (curPagePreHeight+rowMarginHeight)
+          let usableHeight = height - (curPagePreHeight + rowMarginHeight)
           if (elementHeight > usableHeight) {
             const trList = element.trList!
             // 计算需要移除的行数
@@ -1542,95 +1575,125 @@ export class Draw {
                 height
               ) {
                 // 需要拆分的表格行
-                const originTr = tr;
+                const originTr = tr
                 // 拆分出来的表格行
-                type CloneTd = ITd & {original:ITd}
-                type CloneTr = Omit<ITr, "tdList"> & {tdList: CloneTd[]}
-                let lastColspan = 0;
+                type CloneTd = ITd & { original: ITd }
+                type CloneTr = Omit<ITr, 'tdList'> & { tdList: CloneTd[] }
+                let lastColspan = 0
                 const cloneTr: CloneTr = {
                   ...deepClone(originTr),
-                  id : getUUID(),
+                  id: getUUID(),
                   minHeight: undefined,
-                  tdList: element.colgroup!.map((_col,cIdx):CloneTd|undefined=>{
-                    lastColspan--;
-                    if(lastColspan > 0){
-                      return
-                    }
-                    const findTd = originTr.tdList.find((td) => td.colIndex === cIdx)
-                    // 原始td 跨行单元格向上查找
-                    const originTd = findTd ?? this.tableParticle.findPreRowSpanTd(trList, r, cIdx)!
-                    if(findTd){
-                      lastColspan = findTd.colspan
-                    }
-                    const tdId = getUUID();
-                    originTd.originalRowspan = originTd.rowspan;
-                    return findTd ? {
-                      ...findTd,
-                      id: tdId,
-                      originalId: findTd.originalId ?? findTd.id,
-                      linkTdPrevId: findTd.id,
-                      tdIndex: cIdx,
-                      original: originTd,
-                    } : {
-                      id: tdId,
-                      originalId: originTd.originalId ?? originTd.id,
-                      linkTdPrevId: originTd.id,
-                      tdIndex: cIdx,
-                      colIndex: cIdx,
-                      colspan:1,
-                      rowspan:1,
-                      value:[],
-                      rowList:[],
-                      original: originTd,
-                    }
-                  })
+                  tdList: element
+                    .colgroup!.map((_col, cIdx): CloneTd | undefined => {
+                      lastColspan--
+                      if (lastColspan > 0) {
+                        return
+                      }
+                      const findTd = originTr.tdList.find(
+                        td => td.colIndex === cIdx
+                      )
+                      // 原始td 跨行单元格向上查找
+                      const originTd =
+                        findTd ??
+                        this.tableParticle.findPreRowSpanTd(trList, r, cIdx)!
+                      if (findTd) {
+                        lastColspan = findTd.colspan
+                      }
+                      const tdId = getUUID()
+                      originTd.originalRowspan = originTd.rowspan
+                      return findTd
+                        ? {
+                            ...findTd,
+                            id: tdId,
+                            originalId: findTd.originalId ?? findTd.id,
+                            linkTdPrevId: findTd.id,
+                            tdIndex: cIdx,
+                            original: originTd
+                          }
+                        : {
+                            id: tdId,
+                            originalId: originTd.originalId ?? originTd.id,
+                            linkTdPrevId: originTd.id,
+                            tdIndex: cIdx,
+                            colIndex: cIdx,
+                            colspan: 1,
+                            rowspan: 1,
+                            value: [],
+                            rowList: [],
+                            original: originTd
+                          }
+                    })
                     // 过滤跨列单元格 确保colspan都是>0
-                    .filter((td):td is CloneTd=>!!td)
+                    .filter((td): td is CloneTd => !!td)
                 }
 
                 // 创建拆分出来的单元格集合
-                const cloneTdList = cloneTr.tdList;
+                const cloneTdList = cloneTr.tdList
 
-                const originTdList = cloneTdList.map((cloneTd)=>cloneTd.original)
+                const originTdList = cloneTdList.map(
+                  cloneTd => cloneTd.original
+                )
 
                 // 循环拆分td项
-                originTdList.forEach((originTd,index)=>{
-                  const rowList:IRow[] = [];
-                    // td 高度大于可用高度时 需要拆分
+                originTdList.forEach((originTd, index) => {
+                  const rowList: IRow[] = []
+                  // td 高度大于可用高度时 需要拆分
                   let maxHeight = usableHeight
-                  if(originTd.rowspan>1){
+                  if (originTd.rowspan > 1) {
                     // 跨行单元格，最大高度需要加上已经跨过的所有tr高度之和
-                    const rowSpanTrList = trList.slice(originTd.trIndex,originTd.trIndex! + r - originTd.trIndex!);
-                    maxHeight += rowSpanTrList.reduce((pre,cur)=>cur.height * scale + pre,0)
+                    const rowSpanTrList = trList.slice(
+                      originTd.trIndex,
+                      originTd.trIndex! + r - originTd.trIndex!
+                    )
+                    maxHeight += rowSpanTrList.reduce(
+                      (pre, cur) => cur.height * scale + pre,
+                      0
+                    )
                   }
-                  while (originTd.mainHeight! > maxHeight && originTd.rowList?.length){
+                  while (
+                    originTd.mainHeight! > maxHeight &&
+                    originTd.rowList?.length
+                  ) {
                     const deleteTdRow = originTd.rowList.pop()!
-                    originTd.value.splice(originTd.value.length - deleteTdRow.elementList.length)
+                    originTd.value.splice(
+                      originTd.value.length - deleteTdRow.elementList.length
+                    )
                     rowList.unshift(deleteTdRow)
                     originTd.mainHeight! -= deleteTdRow.height
                   }
                   const cloneTd = cloneTdList[index]
                   cloneTd.rowList = rowList
-                  cloneTd.value = rowList.map((row)=>row.elementList).flat()
-                });
+                  cloneTd.value = rowList.map(row => row.elementList).flat()
+                })
 
                 // 还原数据
-                let  restoreValue = true
-                const originTrHasContent = originTr.tdList.some((td)=>td.rowList?.length)
-                const cloneTrHasContent = cloneTr.tdList.some((td)=>td.rowList?.length)
+                let restoreValue = true
+                const originTrHasContent = originTr.tdList.some(
+                  td => td.rowList?.length
+                )
+                const cloneTrHasContent = cloneTr.tdList.some(
+                  td => td.rowList?.length
+                )
                 const minHeightOverflow = originTr.minHeight! > usableHeight
-                if(cloneTrHasContent || minHeightOverflow){
-                  if(originTrHasContent || (!cloneTrHasContent && minHeightOverflow)) {
-                    if(minHeightOverflow){
-                      originTr.originalMinHeight = originTr.minHeight!;
-                      originTr.minHeight = usableHeight;
-                      cloneTr.minHeight = Math.max(originTr.originalMinHeight - usableHeight, defaultTrMinHeight);
+                if (cloneTrHasContent || minHeightOverflow) {
+                  if (
+                    originTrHasContent ||
+                    (!cloneTrHasContent && minHeightOverflow)
+                  ) {
+                    if (minHeightOverflow) {
+                      originTr.originalMinHeight = originTr.minHeight!
+                      originTr.minHeight = usableHeight
+                      cloneTr.minHeight = Math.max(
+                        originTr.originalMinHeight - usableHeight,
+                        defaultTrMinHeight
+                      )
                     }
 
-                    cloneTr.tdList.forEach((td)=>{
+                    cloneTr.tdList.forEach(td => {
                       td.original.linkTdNextId = td.id
-                      if(td.value.length){
-                        if(td.value[0].value!==ZERO){
+                      if (td.value.length) {
+                        if (td.value[0].value !== ZERO) {
                           // 如果没有占位符,插入占位符
                           td.value.unshift({
                             value: ZERO,
@@ -1640,34 +1703,43 @@ export class Draw {
                       }
                     })
                     // 新的表格行插入到指定位置
-                    trList.splice(deleteStart+1,0, cloneTr)
-                    deleteStart += 1;
+                    trList.splice(deleteStart + 1, 0, cloneTr)
+                    deleteStart += 1
                     deleteCount = trList.length - deleteStart
-                    restoreValue = false;
+                    restoreValue = false
                   }
-                  originTdList.forEach((td)=>{
-                    if(td.rowspan>1){
+                  originTdList.forEach(td => {
+                    if (td.rowspan > 1) {
                       // rowspan等于剩余行数
                       const rowspanRemain = td.rowspan - (r - td.trIndex!)
-                      td.rowspan = (r - td.trIndex!) + (originTrHasContent?1:0)
-                      const cloneTd = cloneTr.tdList.find((cloneTd)=>cloneTd.colIndex===td.colIndex)!
-                      if(originTrHasContent){
+                      td.rowspan =
+                        r - td.trIndex! + (originTrHasContent ? 1 : 0)
+                      const cloneTd = cloneTr.tdList.find(
+                        cloneTd => cloneTd.colIndex === td.colIndex
+                      )!
+                      if (originTrHasContent) {
                         // 原始行存在内容 插入新的一行，rowspan等于剩余行数
                         cloneTd.rowspan = rowspanRemain
                       } else {
                         // 原始行没有内容 当前行直接到下一页
                         // 存在跨行的单元格减少跨一行 并且当前行新增跨行分割的单元格
                         cloneTd.original.linkTdNextId = cloneTd.id
-                        originTr.tdList.push({...td,...cloneTd,rowspan:rowspanRemain})
-                        originTr.tdList.sort((a,b)=>a.colIndex!-b.colIndex!)
+                        originTr.tdList.push({
+                          ...td,
+                          ...cloneTd,
+                          rowspan: rowspanRemain
+                        })
+                        originTr.tdList.sort(
+                          (a, b) => a.colIndex! - b.colIndex!
+                        )
                         // 防止被还原了
-                        cloneTd.value = [];
+                        cloneTd.value = []
                       }
                     }
                   })
-                  if(restoreValue){
+                  if (restoreValue) {
                     // 未插入新行 立即还原
-                    originTdList.forEach((td, index)=>{
+                    originTdList.forEach((td, index) => {
                       td.value.push(...cloneTdList[index].value)
                     })
                   }
@@ -1701,19 +1773,29 @@ export class Draw {
               cloneElement.trList = cloneTrList
               cloneElement.id = getUUID()
               // 更新表格内部元素的所属信息
-              cloneElement.trList?.forEach((tr)=>{
-                tr.tdList.forEach((td)=>{
+              cloneElement.trList?.forEach(tr => {
+                tr.tdList.forEach(td => {
                   delete td.valueStartIndex
-                  if(td.linkTdPrevId){
-                    const linkTd = this.findLinkTdPrev(i+1, td.linkTdPrevId!)
-                    td.valueStartIndex = linkTd ? (linkTd.td.valueStartIndex?? 0) + linkTd.td.value.length : 0
-                    if(this.splitTdValueMap.has(td.originalId!)){
-                      this.splitTdValueMap.get(td.originalId!)!.push(...td.value)
-                    }else if(linkTd){
-                      this.splitTdValueMap.set(td.originalId!, [...linkTd.td.value,...td.value])
+                  if (td.linkTdPrevId) {
+                    const linkTd = this.findLinkTdPrev(i + 1, td.linkTdPrevId!)
+                    td.valueStartIndex = linkTd
+                      ? (linkTd.td.valueStartIndex ?? 0) +
+                        linkTd.td.value.length
+                      : 0
+                    if (this.splitTdValueMap.has(td.originalId!)) {
+                      this.splitTdValueMap
+                        .get(td.originalId!)!
+                        .push(...td.value)
+                    } else if (linkTd) {
+                      this.splitTdValueMap.set(td.originalId!, [
+                        ...linkTd.td.value,
+                        ...td.value
+                      ])
                     }
                   }
-                  td.value.forEach((element)=>this.updateElementTableInfo(element,cloneElement,tr,td))
+                  td.value.forEach(element =>
+                    this.updateElementTableInfo(element, cloneElement, tr, td)
+                  )
                 })
               })
               this.spliceElementList(elementList, i + 1, 0, [cloneElement])
@@ -1723,7 +1805,7 @@ export class Draw {
               const tableHeight = this.tableParticle.getTableHeight(element)
               const elementHeight = tableHeight * scale
               element.height = tableHeight
-              metrics.height =  elementHeight
+              metrics.height = elementHeight
               metrics.boundingBoxDescent = elementHeight
             }
           }
@@ -2192,13 +2274,8 @@ export class Draw {
       td
     } = payload
     const isPrintMode = this.mode === EditorMode.PRINT
-    const range = this.range.getRange();
-    const {
-      isCrossRowCol,
-      tableId,
-      zone: currentZone,
-      splitTdRange,
-    } = range
+    const range = this.range.getRange()
+    const { isCrossRowCol, tableId, zone: currentZone, splitTdRange } = range
 
     let index = startIndex
     for (let i = 0; i < rowList.length; i++) {
@@ -2429,17 +2506,18 @@ export class Draw {
         } else if (preElement?.strikeout) {
           this.strikeout.render(ctx)
         }
-        let {
-          startIndex,
-          endIndex,
-        } = range
+        let { startIndex, endIndex } = range
         // 是否是跨页单元格选区
-        let isSplitTdRange = false;
-        if(td && splitTdRange && [td.originalId,td.id].includes(splitTdRange.originalId)){
+        let isSplitTdRange = false
+        if (
+          td &&
+          splitTdRange &&
+          [td.originalId, td.id].includes(splitTdRange.originalId)
+        ) {
           // 跨页单元格选区
-          isSplitTdRange = true;
-          startIndex = splitTdRange.startIndex - (td.valueStartIndex??0)
-          endIndex = splitTdRange.endIndex - (td.valueStartIndex??0)
+          isSplitTdRange = true
+          startIndex = splitTdRange.startIndex - (td.valueStartIndex ?? 0)
+          endIndex = splitTdRange.endIndex - (td.valueStartIndex ?? 0)
         }
         if (
           currentZone === zone &&
@@ -2451,7 +2529,8 @@ export class Draw {
           // 表格需限定上下文
           if (
             (!positionContext.isTable && !element.tdId) ||
-            positionContext.tdId === element.tdId || isSplitTdRange
+            positionContext.tdId === element.tdId ||
+            isSplitTdRange
           ) {
             // 从行尾开始-绘制最小宽度
             if (startIndex === index) {
@@ -2499,7 +2578,7 @@ export class Draw {
                 innerWidth: (td.width! - tdPaddingWidth) * scale,
                 zone,
                 isDrawLineBreak,
-                td,
+                td
               })
             }
           }
@@ -2735,7 +2814,7 @@ export class Draw {
       isLazy = true,
       isInit = false,
       isSourceHistory = false,
-      isFirstRender = false,
+      isFirstRender = false
     } = payload || {}
     let { curIndex } = payload || {}
     const innerWidth = this.getInnerWidth()
@@ -2745,7 +2824,7 @@ export class Draw {
     // 计算文档信息
     if (isCompute) {
       // 需要重新计算文档信息 立即清空缓存
-      this.splitTdValueMap.clear();
+      this.splitTdValueMap.clear()
       // 清空浮动元素位置信息
       this.position.setFloatPositionList([])
       if (isPagingMode) {
@@ -2822,25 +2901,29 @@ export class Draw {
     if (isSetCursor) {
       // 检查当前光标对应的元素位置
       // 解决当前光标在拆分出来的单元格中重新计算后被合并导致通过position无法获取当前元素列表的bug
-      if(isCompute && curElement?.tableId){
+      if (isCompute && curElement?.tableId) {
         const { index } = positionContext
-        const originalElementList = this.getOriginalElementList();
-        const positionElement = originalElementList[index!];
-        if(curElement.tableId !== positionElement?.id){
+        const originalElementList = this.getOriginalElementList()
+        const positionElement = originalElementList[index!]
+        if (curElement.tableId !== positionElement?.id) {
           // 当前元素位置发生改变
           // 向前找当前元素
-          const findRes = this.findTableChildrenElement(true,curElement.tableId,curElement)
-          if(findRes && positionContext.index!==findRes.originalIndex){
+          const findRes = this.findTableChildrenElement(
+            true,
+            curElement.tableId,
+            curElement
+          )
+          if (findRes && positionContext.index !== findRes.originalIndex) {
             // 找到了
-            positionContext.index = findRes.originalIndex;
-            positionContext.tableId = findRes.table.id;
-            positionContext.trIndex = findRes.trIndex;
-            positionContext.trId = findRes.tr.id;
-            positionContext.tdIndex = findRes.tdIndex;
-            positionContext.tdId = findRes.td.id;
-            curIndex = findRes.elementIndex;
+            positionContext.index = findRes.originalIndex
+            positionContext.tableId = findRes.table.id
+            positionContext.trIndex = findRes.trIndex
+            positionContext.trId = findRes.tr.id
+            positionContext.tdIndex = findRes.tdIndex
+            positionContext.tdId = findRes.td.id
+            curIndex = findRes.elementIndex
             this.position.setPositionContext(positionContext)
-            this.range.setRange(curIndex,curIndex)
+            this.range.setRange(curIndex, curIndex)
             this.updateTableTool()
           }
         }
@@ -2866,11 +2949,7 @@ export class Draw {
         this.control.reAwakeControl()
       }
       // 表格工具重新渲染
-      if (
-        isCompute &&
-        !this.isReadonly() &&
-        positionContext.isTable
-      ) {
+      if (isCompute && !this.isReadonly() && positionContext.isTable) {
         this.tableTool.render()
       }
       // 页眉指示器重新渲染
@@ -2898,46 +2977,50 @@ export class Draw {
     })
 
     // 修复光标位置
-    this.fixPosition();
+    this.fixPosition()
   }
 
-  public fixPosition(prev = false): number | undefined{
+  public fixPosition(prev = false): number | undefined {
     let newStartIndex: number | undefined = undefined
     const positionContext = this.position.getPositionContext()
-    if(positionContext.isTable){
+    if (positionContext.isTable) {
       // 渲染完成后修复单元格拆分光标位置
       const list = this.getElementList()
-      const startIndex = this.range.getRange().startIndex;
-      if(prev || startIndex >= list.length){
+      const startIndex = this.range.getRange().startIndex
+      if (prev || startIndex >= list.length) {
         // 超出索引时, 需要找到拆分后的单元格 并且将光标改变至正确位置
-        const curTd = this.getTd();
+        const curTd = this.getTd()
         const index = positionContext.index! + (prev ? -1 : 1)
         const elementList = this.getOriginalElementList()
         const table = elementList[index]
-        if(!table){
+        if (!table) {
           return
         }
-        newStartIndex = startIndex - list.length;
-        for (let trIndex=0;trIndex < table.trList!.length;trIndex++) {
-          const tr = table.trList![trIndex];
-          const findTd = tr.tdList.find((td)=> prev ? curTd?.linkTdPrevId === td.id : curTd?.id === td.linkTdPrevId)
-          if(findTd){
+        newStartIndex = startIndex - list.length
+        for (let trIndex = 0; trIndex < table.trList!.length; trIndex++) {
+          const tr = table.trList![trIndex]
+          const findTd = tr.tdList.find(td =>
+            prev ? curTd?.linkTdPrevId === td.id : curTd?.id === td.linkTdPrevId
+          )
+          if (findTd) {
             positionContext.index = index
             positionContext.trIndex = trIndex
             positionContext.tableId = table.id
             positionContext.trId = tr.id
             positionContext.tdId = findTd?.id
-            newStartIndex = prev ? findTd.value.length - 1 : newStartIndex + findTd.value.filter((e)=>e.splitTdTag).length
-            break;
+            newStartIndex = prev
+              ? findTd.value.length - 1
+              : newStartIndex + findTd.value.filter(e => e.splitTdTag).length
+            break
           }
         }
         this.position.setPositionContext(positionContext)
-        this.range.setRange(newStartIndex,newStartIndex)
+        this.range.setRange(newStartIndex, newStartIndex)
         this.setCursor(newStartIndex)
         this.updateTableTool()
       }
     }
-    return newStartIndex;
+    return newStartIndex
   }
 
   public setCursor(curIndex: number | undefined) {
@@ -3027,46 +3110,66 @@ export class Draw {
   }
 
   // 更新表格工具栏
-  public updateTableTool(){
-    if(this.position.getPositionContext().isTable){
+  public updateTableTool() {
+    if (this.position.getPositionContext().isTable) {
       this.setPageNo(this.position.getPositionList()[0].pageNo)
       this.getTableTool().render()
     }
   }
 
-  public clearElementEffect(element:IElement){
-    element.trList?.forEach((tr)=>{
-      tr.minHeight = tr.originalMinHeight ?? tr.minHeight;
-      delete tr.originalMinHeight;
-      tr.tdList.forEach((td)=>{
+  public clearElementEffect(element: IElement) {
+    element.trList?.forEach(tr => {
+      tr.minHeight = tr.originalMinHeight ?? tr.minHeight
+      delete tr.originalMinHeight
+      tr.tdList.forEach(td => {
         delete td.linkTdNextId
       })
     })
   }
 
-  private updateElementTableInfo(element:IElement,table:IElement,tr:ITr,td:ITd){
-    element.tableId = table.id;
-    element.trId = tr.id;
-    element.tdId = td.id;
-    return element;
+  private updateElementTableInfo(
+    element: IElement,
+    table: IElement,
+    tr: ITr,
+    td: ITd
+  ) {
+    element.tableId = table.id
+    element.trId = tr.id
+    element.tdId = td.id
+    return element
   }
 
-  public findTableChildrenElement(prev:boolean,tableId: string, findTarget:IElement|((curElement:IElement)=>any)): FindTableChildrenElementRes | undefined{
-    const position = this.position.getPositionContext();
-    const { index } = position;
-    const originalElementList = this.getOriginalElementList();
-    let startIndex = index!;
-    if(prev){
-      startIndex = index !> originalElementList.length ? originalElementList.length-1: index!;
+  public findTableChildrenElement(
+    prev: boolean,
+    tableId: string,
+    findTarget: IElement | ((curElement: IElement) => any)
+  ): FindTableChildrenElementRes | undefined {
+    const position = this.position.getPositionContext()
+    const { index } = position
+    const originalElementList = this.getOriginalElementList()
+    let startIndex = index!
+    if (prev) {
+      startIndex =
+        index! > originalElementList.length
+          ? originalElementList.length - 1
+          : index!
     }
-    for (let i = startIndex; prev ? i >= 0 : i < originalElementList.length; prev ? i-- : i++){
-      const element = originalElementList[i];
-      if(element && [element.originalId,element.id].includes(tableId)){
+    for (
+      let i = startIndex;
+      prev ? i >= 0 : i < originalElementList.length;
+      prev ? i-- : i++
+    ) {
+      const element = originalElementList[i]
+      if (element && [element.originalId, element.id].includes(tableId)) {
         // 是当前表格
-        for (const [trIndex,tr] of element.trList!.entries()) {
-          for (const [tdIndex,td] of tr.tdList!.entries()) {
-            const findIndex = td.value.findIndex(typeof findTarget === "function" ? findTarget : (el)=>el===findTarget)
-            if(findIndex>=0){
+        for (const [trIndex, tr] of element.trList!.entries()) {
+          for (const [tdIndex, td] of tr.tdList!.entries()) {
+            const findIndex = td.value.findIndex(
+              typeof findTarget === 'function'
+                ? findTarget
+                : el => el === findTarget
+            )
+            if (findIndex >= 0) {
               return {
                 originalIndex: i,
                 table: element,
@@ -3074,7 +3177,7 @@ export class Draw {
                 trIndex,
                 td,
                 tdIndex,
-                elementIndex: findIndex,
+                elementIndex: findIndex
               }
             }
           }
@@ -3084,65 +3187,81 @@ export class Draw {
     return undefined
   }
 
-  public findLinkTdPrev(index:number,linkTdPrevId:string):FindTdRes|undefined{
+  public findLinkTdPrev(
+    index: number,
+    linkTdPrevId: string
+  ): FindTdRes | undefined {
     const originalElementList = this.getOriginalElementList()
-    const originalIndex = index-1;
+    const originalIndex = index - 1
     const prevElement = originalElementList[originalIndex]
-    for (let trIndex=prevElement.trList!.length-1;trIndex>=0;trIndex--){
-      const tr = prevElement.trList![trIndex];
-      const findTd = tr.tdList.find((td)=>td.id===linkTdPrevId)
-      if(findTd){
+    for (
+      let trIndex = prevElement.trList!.length - 1;
+      trIndex >= 0;
+      trIndex--
+    ) {
+      const tr = prevElement.trList![trIndex]
+      const findTd = tr.tdList.find(td => td.id === linkTdPrevId)
+      if (findTd) {
         return {
           originalIndex,
-          table:prevElement,
+          table: prevElement,
           trIndex,
           tr,
-          td:findTd,
+          td: findTd
         }
       }
     }
     return undefined
   }
-  public findLinkTdNext(index:number,tdId:string):FindTdRes|undefined{
+
+  public findLinkTdNext(index: number, tdId: string): FindTdRes | undefined {
     const originalElementList = this.getOriginalElementList()
-    const originalIndex = index+1;
+    const originalIndex = index + 1
     const prevElement = originalElementList[originalIndex]
-    for (let trIndex=0;trIndex<prevElement.trList!.length;trIndex++){
-      const tr = prevElement.trList![trIndex];
-      const findTd = tr.tdList.find((td)=>td.id===tdId)
-      if(findTd){
+    for (let trIndex = 0; trIndex < prevElement.trList!.length; trIndex++) {
+      const tr = prevElement.trList![trIndex]
+      const findTd = tr.tdList.find(td => td.id === tdId)
+      if (findTd) {
         return {
           originalIndex,
-          table:prevElement,
+          table: prevElement,
           trIndex,
           tr,
-          td:findTd,
+          td: findTd
         }
       }
     }
     return undefined
   }
-  public isSplitTd(tdA: ITd, tdB: ITd): boolean{
-    return (!!tdA?.originalId || !!tdB?.originalId) && (tdA?.originalId===tdB?.originalId || tdA?.id===tdB?.originalId || tdA?.originalId===tdB?.id)
+
+  public isSplitTd(tdA: ITd, tdB: ITd): boolean {
+    return (
+      (!!tdA?.originalId || !!tdB?.originalId) &&
+      (tdA?.originalId === tdB?.originalId ||
+        tdA?.id === tdB?.originalId ||
+        tdA?.originalId === tdB?.id)
+    )
   }
-  public getSplitTdValues(originalId: string){
+
+  public getSplitTdValues(originalId: string) {
     return this.splitTdValueMap.get(originalId)
   }
 }
 
-interface FindTableChildrenElementRes{
+interface FindTableChildrenElementRes {
   originalIndex: number
-  table: IElement,
-  tr: ITr,
-  trIndex: number,
-  td: ITd,
-  tdIndex: number,
+  table: IElement
+  tr: ITr
+  trIndex: number
+  td: ITd
+  tdIndex: number
   elementIndex: number
 }
-interface FindTdRes{
+
+interface FindTdRes {
   originalIndex: number
-  table: IElement,
-  trIndex: number,
-  tr: ITr,
-  td: ITd,
+  table: IElement
+  trIndex: number
+  tr: ITr
+  td: ITd
 }

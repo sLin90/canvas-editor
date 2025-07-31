@@ -97,12 +97,15 @@ export function left(evt: KeyboardEvent, host: CanvasEvent) {
       // 在表格单元格内&在首位则往前移动单元格
       if (startIndex === 0) {
         const originalElementList = draw.getOriginalElementList()
-        const currentElement = originalElementList[positionContext.index!];
+        const currentElement = originalElementList[positionContext.index!]
         const currentTd = draw.getTd()
-        if(currentTd?.linkTdPrevId){
+        if (currentTd?.linkTdPrevId) {
           // 当前单元格是跨页拆分的单元格，找到前一页单元格
-          const linkTdRes = draw.findLinkTdPrev(positionContext.index!,currentTd.linkTdPrevId)
-          if(linkTdRes){
+          const linkTdRes = draw.findLinkTdPrev(
+            positionContext.index!,
+            currentTd.linkTdPrevId
+          )
+          if (linkTdRes) {
             position.setPositionContext({
               ...positionContext,
               isTable: true,
@@ -115,7 +118,7 @@ export function left(evt: KeyboardEvent, host: CanvasEvent) {
             anchorStartIndex = linkTdRes.td.value.length - 1
             anchorEndIndex = anchorStartIndex
           }
-        }else{
+        } else {
           const trList = currentElement.trList!
           outer: for (let r = 0; r < trList.length; r++) {
             const tr = trList[r]

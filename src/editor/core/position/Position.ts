@@ -341,7 +341,6 @@ export class Position {
   }
 
   public setPositionContext(payload: IPositionContext) {
-    console.warn("@cc setPositionContext",payload)
     this.eventBus.emit('positionContextChange', {
       value: payload,
       oldValue: this.positionContext

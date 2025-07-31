@@ -11,6 +11,7 @@ interface IGetNextPositionIndexPayload {
   isUp: boolean
   cursorX: number
 }
+
 // 根据当前位置索引查找上下行最接近的索引位置
 function getNextPositionIndex(payload: IGetNextPositionIndexPayload) {
   const { positionList, index, isUp, rowNo, cursorX } = payload
@@ -87,27 +88,33 @@ export function updown(evt: KeyboardEvent, host: CanvasEvent) {
       // 向上移动-第一行则移出到表格外，否则上一行相同列位置
       const originalElementList = draw.getOriginalElementList()
       if (trIndex === 0) {
-        const currentElement = originalElementList[index!];
-        if(currentElement.originalId){
-          const prevIndex = index!-1;
-          const prevElement = originalElementList[prevIndex];
-          for (let prevTrIndex = prevElement.trList!.length-1; prevTrIndex>=0; prevTrIndex--){
-            const findTd = prevElement.trList![prevTrIndex].tdList.find((td)=>td.tdIndex===tdIndex)
-            if(findTd?.value.length){
+        const currentElement = originalElementList[index!]
+        if (currentElement.originalId) {
+          const prevIndex = index! - 1
+          const prevElement = originalElementList[prevIndex]
+          for (
+            let prevTrIndex = prevElement.trList!.length - 1;
+            prevTrIndex >= 0;
+            prevTrIndex--
+          ) {
+            const findTd = prevElement.trList![prevTrIndex].tdList.find(
+              td => td.tdIndex === tdIndex
+            )
+            if (findTd?.value.length) {
               // 存在内容
               position.setPositionContext({
-                isTable:true,
-                tableId:prevElement.id,
-                index:prevIndex,
-                trIndex:prevTrIndex,
-                tdIndex:tdIndex,
+                isTable: true,
+                tableId: prevElement.id,
+                index: prevIndex,
+                trIndex: prevTrIndex,
+                tdIndex: tdIndex
               })
-              anchorStartIndex = findTd.value.length-1
-              anchorEndIndex = findTd.value.length-1
-              break;
+              anchorStartIndex = findTd.value.length - 1
+              anchorEndIndex = findTd.value.length - 1
+              break
             }
           }
-        }else{
+        } else {
           position.setPositionContext({
             isTable: false
           })
@@ -156,31 +163,35 @@ export function updown(evt: KeyboardEvent, host: CanvasEvent) {
     } else {
       // 向下移动-最后一行则移出表格外，否则下一行相同列位置
       const originalElementList = draw.getOriginalElementList()
-      const currentElement = originalElementList[index!];
+      const currentElement = originalElementList[index!]
       const trList = currentElement.trList!
 
       if (trIndex === trList.length - 1) {
-        const nextIndex = index!+1;
-        const nextElement = originalElementList[nextIndex];
-        const isSplitTable = nextElement && [currentElement.id,currentElement.originalId].includes(nextElement.originalId)
-        if(isSplitTable){
-          for (let nextTdIndex=tdIndex!;nextTdIndex>=0;nextTdIndex--){
+        const nextIndex = index! + 1
+        const nextElement = originalElementList[nextIndex]
+        const isSplitTable =
+          nextElement &&
+          [currentElement.id, currentElement.originalId].includes(
+            nextElement.originalId
+          )
+        if (isSplitTable) {
+          for (let nextTdIndex = tdIndex!; nextTdIndex >= 0; nextTdIndex--) {
             const nextTd = nextElement.trList![0].tdList[nextTdIndex]
-            if(nextTd.value.length){
+            if (nextTd.value.length) {
               // 存在内容
               position.setPositionContext({
-                isTable:true,
-                index:nextIndex,
-                tableId:nextElement.id,
-                trIndex:0,
-                tdIndex:nextTdIndex,
+                isTable: true,
+                index: nextIndex,
+                tableId: nextElement.id,
+                trIndex: 0,
+                tdIndex: nextTdIndex
               })
               anchorStartIndex = 0
               anchorEndIndex = 0
-              break;
+              break
             }
           }
-        }else{
+        } else {
           position.setPositionContext({
             isTable: false
           })
