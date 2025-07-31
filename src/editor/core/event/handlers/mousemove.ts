@@ -114,6 +114,15 @@ export function mousemove(evt: MouseEvent, host: CanvasEvent) {
       ]
     }
   }
+  position.setPositionContext({
+    isTable: !!isTable,
+    index,
+    trIndex,
+    tdIndex,
+    tdId,
+    trId,
+    tableId
+  })
   if (isTable && startIsTable && tdId !== startTdId && !splitTd) {
     rangeManager.setRange(
       endIndex,
@@ -124,15 +133,6 @@ export function mousemove(evt: MouseEvent, host: CanvasEvent) {
       startTrIndex,
       trIndex
     )
-    position.setPositionContext({
-      isTable,
-      index,
-      trIndex,
-      tdIndex,
-      tdId,
-      trId,
-      tableId
-    })
   } else {
     let end = ~endIndex ? endIndex : 0
     // 开始或结束位置存在表格，但是非相同表格则忽略选区设置
@@ -144,7 +144,8 @@ export function mousemove(evt: MouseEvent, host: CanvasEvent) {
     let startElement: IElement | undefined
     let endElement: IElement | undefined
     if (splitTd) {
-      [{ element: startElement }, { element: endElement }] = splitTd
+      // prettier-ignore
+      [{element: startElement}, {element: endElement}] = splitTd
     } else {
       const elementList = draw.getElementList()
       startElement = elementList[start + 1]
