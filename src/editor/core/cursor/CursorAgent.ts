@@ -77,8 +77,8 @@ export class CursorAgent {
   private _compositionstart() {
     this.agentCursorDom.style.zIndex = '1000'
     this.agentCursorDom.style.width = '0px'
-    this.agentCursorDom.style.color = 'initial'
-    this.agentCursorDom.style.background = 'initial'
+    this.agentCursorDom.style.color = '#000'
+    this.agentCursorDom.style.background = '#fff'
     this.canvasEvent.compositionstart()
   }
 
@@ -89,8 +89,8 @@ export class CursorAgent {
   private _compositionend(evt: CompositionEvent) {
     this.agentCursorDom.style.zIndex = '-1'
     this.agentCursorDom.style.width = '0px'
-    this.agentCursorDom.style.color = 'transparent'
-    this.agentCursorDom.style.background = 'transparent'
+    this.agentCursorDom.style.color = ''
+    this.agentCursorDom.style.background = ''
     this.canvasEvent.compositionend(evt)
   }
 
