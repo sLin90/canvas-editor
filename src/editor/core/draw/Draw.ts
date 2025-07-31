@@ -2274,9 +2274,7 @@ export class Draw {
       td
     } = payload
     const isPrintMode = this.mode === EditorMode.PRINT
-    const range = this.range.getRange()
-    const { isCrossRowCol, tableId, zone: currentZone, splitTdRange } = range
-
+    const { isCrossRowCol, tableId } = this.range.getRange()
     let index = startIndex
     for (let i = 0; i < rowList.length; i++) {
       const curRow = rowList[i]
@@ -2506,7 +2504,12 @@ export class Draw {
         } else if (preElement?.strikeout) {
           this.strikeout.render(ctx)
         }
-        let { startIndex, endIndex } = range
+        // 选区记录
+        const {
+          zone: currentZone,
+          splitTdRange,
+        } = this.range.getRange()
+        let { startIndex, endIndex } = this.range.getRange()
         // 是否是跨页单元格选区
         let isSplitTdRange = false
         if (
