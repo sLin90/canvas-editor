@@ -2505,10 +2505,7 @@ export class Draw {
           this.strikeout.render(ctx)
         }
         // 选区记录
-        const {
-          zone: currentZone,
-          splitTdRange,
-        } = this.range.getRange()
+        const { zone: currentZone, splitTdRange } = this.range.getRange()
         let { startIndex, endIndex } = this.range.getRange()
         // 是否是跨页单元格选区
         let isSplitTdRange = false
@@ -3053,7 +3050,7 @@ export class Draw {
     ) {
       const elementList = this.getElementList()
       const element = elementList[curIndex]
-      if (IMAGE_ELEMENT_TYPE.includes(element.type!)) {
+      if (element && IMAGE_ELEMENT_TYPE.includes(element.type!)) {
         isShowCursor = false
         const position = this.position.getCursorPosition()
         this.previewer.updateResizer(element, position)
@@ -3115,8 +3112,11 @@ export class Draw {
   // 更新表格工具栏
   public updateTableTool() {
     if (this.position.getPositionContext().isTable) {
-      this.setPageNo(this.position.getPositionList()[0].pageNo)
-      this.getTableTool().render()
+      const list = this.position.getPositionList()
+      if (list.length) {
+        this.setPageNo(list[0].pageNo)
+        this.getTableTool().render()
+      }
     }
   }
 
