@@ -1547,7 +1547,7 @@ export class Draw {
             }
           }
           // 当前剩余高度是否能容下当前表格第一行（可拆分）的高度，排除掉表头类型
-          const rowMarginHeight = rowMargin * 2 * scale
+          const rowMarginHeight = rowMargin * 2
           const firstTrHeight = element.trList![0].height! * scale
           if (
             curPagePreHeight + firstTrHeight + rowMarginHeight > height ||
@@ -1652,7 +1652,7 @@ export class Draw {
                     )
                   }
                   while (
-                    originTd.mainHeight! > maxHeight &&
+                    originTd.mainHeight! * scale > maxHeight &&
                     originTd.rowList?.length
                   ) {
                     const deleteTdRow = originTd.rowList.pop()!
