@@ -24,8 +24,8 @@ export function input(data: string, host: CanvasEvent) {
   // 移除合成前，缓存设置的默认样式设置
   const defaultStyle =
     rangeManager.getDefaultStyle() || host.compositionInfo?.defaultStyle || null
-  // 合成输入内容(单元格拆分后, compositionInfo中的元素列表不再直接影响真实元素,这里传入真实列表进行合成)
-  const elementList = composingInputElements(host, draw.getElementList())
+  // 拼接元素列表 移除全区范围的元素
+  const elementList = spliceElementList(host, draw.getElementList())
   if (!isComposing) {
     const cursor = draw.getCursor()
     cursor.clearAgentDomValue()
@@ -125,12 +125,10 @@ export function removeComposingInput(host: CanvasEvent) {
   host.compositionInfo = null
 }
 
-export function composingInputElements(
-  host: CanvasEvent,
-  elementList: IElement[]
-) {
-  if (!host.compositionInfo || host.isComposing) return elementList
-  const { startIndex, endIndex } = host.compositionInfo
+export function spliceElementList(host: CanvasEvent, elementList: IElement[]) {
+  if (host.isComposing) return elementList
+  const { startIndex, endIndex } =
+    host.compositionInfo ?? host.getDraw().getRange().getRange()
   if (startIndex !== endIndex) {
     host
       .getDraw()
