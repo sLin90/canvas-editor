@@ -1695,10 +1695,16 @@ export class Draw {
                       if (td.value.length) {
                         if (td.value[0].value !== ZERO) {
                           // 如果没有占位符,插入占位符
-                          td.value.unshift({
-                            value: ZERO,
-                            splitTdTag: true
+                          const splitTag:IElement = {
+                            ...deepClone(td.original.value.slice(-1).pop()),
+                            value: ZERO
+                          };
+                          // 添加拆分标记 使用enumerable 防止插入新元素时解构得到标记
+                          Object.defineProperty(splitTag, 'splitTdTag', {
+                            value: true,
+                            enumerable: false,
                           })
+                          td.value.unshift(splitTag)
                         }
                       }
                     })
