@@ -70,8 +70,28 @@ export function del(evt: KeyboardEvent, host: CanvasEvent) {
           endIndex - startIndex
         )
       } else {
-        if (!elementList[index + 1]) return
-        draw.spliceElementList(elementList, index + 1, 1)
+        if (!elementList[index + 1]) {
+          let end = true
+          if (positionContext.isTable) {
+            const td = draw.getTd()
+            if (td?.linkTdNextId) {
+              // 拆分行 存在下一个td 进行删除
+              const nextTd = draw.findLinkTdNext(
+                positionContext.index!,
+                td.linkTdNextId
+              )
+              if (nextTd) {
+                end = false
+                draw.spliceElementList(nextTd.td.value, 1, 1)
+              }
+            }
+          }
+          if (end) {
+            return
+          }
+        } else {
+          draw.spliceElementList(elementList, index + 1, 1)
+        }
       }
       curIndex = isCollapsed ? index : startIndex
     }
