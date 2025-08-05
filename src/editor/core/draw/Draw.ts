@@ -3023,6 +3023,9 @@ export class Draw {
         this.position.setPositionContext(positionContext)
         this.range.setRange(newStartIndex, newStartIndex)
         this.setCursor(newStartIndex)
+        if (newStartIndex === 0) {
+          return this.fixPosition(prev)
+        }
         this.updateTableTool()
       }
     }
@@ -3254,6 +3257,59 @@ export class Draw {
 
   public getSplitTdValues(originalId: string) {
     return this.splitTdValueMap.get(originalId)
+  }
+
+  public removeSplitTdOtherRangeElements() {
+    const { splitTdRange } = this.range.getRange()
+    if (!splitTdRange) {
+      return
+    }
+    const { startIndex, endIndex } = splitTdRange
+    const positionContext = this.position.getPositionContext()
+    let { index } = positionContext
+    let curTd = this.getTd()
+    if (curTd) {
+      if ((curTd?.valueStartIndex ?? 0) >= startIndex) {
+        let tdStartIndex = -1
+        while (tdStartIndex < 0) {
+          // 当前td是结束单元格
+          const find = this.findLinkTdPrev(index!, curTd.linkTdPrevId!)
+          if (find?.td) {
+            tdStartIndex = startIndex - (find.td.valueStartIndex ?? 0)
+            const start = Math.max(0, tdStartIndex)
+            this.spliceElementList(
+              find.td.value,
+              start + 1,
+              find.td.value.length - start - 1
+            )
+            curTd = find.td
+            index = find.originalIndex
+          } else {
+            // 退出循环
+            tdStartIndex = 0
+          }
+        }
+      } else {
+        // 当前td是开始单元格
+        let tdEndIndex = 1
+        while (tdEndIndex > 0) {
+          const find = this.findLinkTdNext(index!, curTd.linkTdNextId!)
+          if (find?.td) {
+            const tdStartIndex = find.td.valueStartIndex ?? 0
+            tdEndIndex = endIndex - (tdStartIndex + find.td.value.length)
+            const deleteCount = Math.min(
+              find.td.value.length,
+              endIndex - tdStartIndex + 1
+            )
+            this.spliceElementList(find.td.value, 0, deleteCount)
+            curTd = find.td
+            index = find.originalIndex
+          } else {
+            tdEndIndex = 0
+          }
+        }
+      }
+    }
   }
 }
 

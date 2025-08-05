@@ -81,7 +81,14 @@ export function mousemove(evt: MouseEvent, host: CanvasEvent) {
   // 判断是否是表格跨行/列
   const rangeManager = draw.getRange()
   // 是否是跨页单元格
-  type SplitItem = { index: number; element: IElement; originalId?: string }
+  type SplitItem = {
+    index: number
+    element: IElement
+    originalId?: string
+    isCurrent: boolean
+    length: number
+    startIndex: number
+  }
   let splitTd: [SplitItem, SplitItem] | undefined = undefined
   if (tdId !== startTdId && !!tdId && !!startTdId) {
     // 判断是否是跨页单元格
@@ -104,12 +111,18 @@ export function mousemove(evt: MouseEvent, host: CanvasEvent) {
         {
           index: startValueIndex,
           element: startTd.value[startIndex],
-          originalId: startTd.originalId
+          originalId: startTd.originalId,
+          isCurrent: false,
+          length: startTd.value.length,
+          startIndex: startTd.valueStartIndex ?? 0
         },
         {
           index: endValueIndex,
           element: endTd.value[tdValueIndex!],
-          originalId: endTd.originalId
+          originalId: endTd.originalId,
+          isCurrent: true,
+          length: endTd.value.length,
+          startIndex: endTd.valueStartIndex ?? 0
         }
       ]
     }
@@ -166,13 +179,20 @@ export function mousemove(evt: MouseEvent, host: CanvasEvent) {
     }
     let splitTdRange: SplitTdRange | undefined
     if (splitTd) {
-      const [startIndex, endIndex] = [splitTd[0].index, splitTd[1].index].sort(
-        (a, b) => a - b
-      )
+      const [startTd, endTd] = splitTd.sort((a, b) => a.index - b.index)
       splitTdRange = {
         originalId: splitTd[0].originalId ?? splitTd[1].originalId!,
-        startIndex: startIndex,
-        endIndex: endIndex
+        startIndex: startTd.index,
+        endIndex: endTd.index
+      }
+      if (startTd.isCurrent) {
+        // 当前鼠标在第一个单元格
+        start = startTd.index
+        end = startTd.length - 1
+      } else {
+        // 当前鼠标在最后一个单元格
+        start = 0
+        end = splitTdRange.endIndex - endTd.startIndex
       }
     }
     rangeManager.setRange(

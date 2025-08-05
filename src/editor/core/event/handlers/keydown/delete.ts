@@ -6,7 +6,8 @@ export function del(evt: KeyboardEvent, host: CanvasEvent) {
   // 可输入性验证
   const rangeManager = draw.getRange()
   if (!rangeManager.getIsCanInput()) return
-  const { startIndex, endIndex, isCrossRowCol } = rangeManager.getRange()
+  const { startIndex, endIndex, isCrossRowCol, splitTdRange } =
+    rangeManager.getRange()
   // 隐藏控件删除
   const elementList = draw.getElementList()
   const control = draw.getControl()
@@ -51,6 +52,7 @@ export function del(evt: KeyboardEvent, host: CanvasEvent) {
     // 光标在控件前
     curIndex = control.removeControl(endIndex + 1)
   } else {
+    draw.removeSplitTdOtherRangeElements()
     // 普通元素
     const position = draw.getPosition()
     const cursorPosition = position.getCursorPosition()
@@ -94,6 +96,9 @@ export function del(evt: KeyboardEvent, host: CanvasEvent) {
         }
       }
       curIndex = isCollapsed ? index : startIndex
+      if (curIndex === 0 && splitTdRange) {
+        curIndex = draw.fixPosition(true) ?? curIndex
+      }
     }
   }
   draw.getGlobalEvent().setCanvasEventAbility()

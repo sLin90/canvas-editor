@@ -96,6 +96,7 @@ export function backspace(evt: KeyboardEvent, host: CanvasEvent) {
         })
       }
     }
+    draw.removeSplitTdOtherRangeElements()
     if (!isCollapsed) {
       draw.spliceElementList(elementList, startIndex + 1, endIndex - startIndex)
     } else {

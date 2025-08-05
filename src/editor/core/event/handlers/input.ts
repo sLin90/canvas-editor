@@ -93,6 +93,12 @@ export function input(data: string, host: CanvasEvent) {
       }
     } else {
       const start = startIndex + 1
+      if (startIndex !== endIndex) {
+        // 如果存在跨单元格选区
+        draw.removeSplitTdOtherRangeElements()
+        // 删除选区
+        draw.spliceElementList(elementList, start, endIndex - startIndex)
+      }
       formatElementContext(elementList, inputData, startIndex, {
         editorOptions: draw.getOptions()
       })
@@ -132,6 +138,7 @@ export function composingInputElements(
   if (!host.compositionInfo || host.isComposing) return elementList
   const { startIndex, endIndex } = host.compositionInfo
   if (startIndex !== endIndex) {
+    host.getDraw().removeSplitTdOtherRangeElements()
     host
       .getDraw()
       .spliceElementList(elementList, startIndex + 1, endIndex - startIndex)
