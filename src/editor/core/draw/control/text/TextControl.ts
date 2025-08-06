@@ -38,13 +38,36 @@ export class TextControl implements IControlInstance {
 
   public getValue(context: IControlContext = {}): IElement[] {
     const elementList = context.elementList || this.control.getElementList()
-    const { startIndex } = context.range || this.control.getRange()
+    let { startIndex } = context.range || this.control.getRange()
+    const draw = this.control.getDraw()
+    const curTd = draw.getTd()
+    const { index } = draw.getPosition().getPositionContext()
+    if (startIndex >= elementList.length) {
+      startIndex = elementList.length - 1
+    }
     const startElement = elementList[startIndex]
     const data: IElement[] = []
+
+    let findIndex = index
+    let findTd = curTd
     // 向左查找
+    let prevList = elementList
     let preIndex = startIndex
-    while (preIndex > 0) {
-      const preElement = elementList[preIndex]
+    while (true) {
+      if (preIndex < 0) {
+        if (findTd?.linkTdPrevId) {
+          // 超出边界 进入nextTd
+          const prev = draw.findLinkTdPrev(findIndex!, findTd.linkTdPrevId)
+          if (prev) {
+            prevList = prev.td.value
+            preIndex = prevList.length - 1
+            findIndex = prev.originalIndex
+            findTd = prev.td
+            continue
+          }
+        }
+      }
+      const preElement = prevList[preIndex]
       if (
         preElement.controlId !== startElement.controlId ||
         preElement.controlComponent === ControlComponent.PREFIX ||
@@ -57,11 +80,29 @@ export class TextControl implements IControlInstance {
       }
       preIndex--
     }
+
+    findIndex = index
+    findTd = curTd
     // 向右查找
+    let nextList = elementList
     let nextIndex = startIndex + 1
-    while (nextIndex < elementList.length) {
-      const nextElement = elementList[nextIndex]
+    while (true) {
+      if (nextIndex >= nextList.length) {
+        if (findTd?.linkTdNextId) {
+          // 超出边界 进入nextTd
+          const next = draw.findLinkTdNext(findIndex!, findTd.linkTdNextId)
+          if (next) {
+            nextList = next.td.value
+            nextIndex = 0
+            findIndex = next.originalIndex
+            findTd = next.td
+            continue
+          }
+        }
+      }
+      const nextElement = nextList[nextIndex]
       if (
+        !nextElement ||
         nextElement.controlId !== startElement.controlId ||
         nextElement.controlComponent === ControlComponent.POSTFIX ||
         nextElement.controlComponent === ControlComponent.POST_TEXT
@@ -73,7 +114,35 @@ export class TextControl implements IControlInstance {
       }
       nextIndex++
     }
-    return data
+    return data.filter(item => !item.splitTdTag)
+  }
+  public removeNextControlElement(
+    controlId: string,
+    positionIndex?: number,
+    nextTdId?: string
+  ): IElement | undefined {
+    const draw = this.control.getDraw()
+    nextTdId = nextTdId ?? draw.getTd()?.linkTdNextId
+    if (nextTdId) {
+      const index =
+        positionIndex ?? draw.getPosition().getPositionContext().index
+      const next = draw.findLinkTdNext(index!, nextTdId)
+      if (next) {
+        if (next.td.value.length) {
+          if (next.td.value[1].controlId === controlId) {
+            draw.spliceElementList(next.td.value, 1, 1)
+            return next.td.value[1]
+          }
+        } else if (next.td.linkTdNextId) {
+          return this.removeNextControlElement(
+            controlId,
+            next.originalIndex,
+            next.td.linkTdNextId
+          )
+        }
+      }
+    }
+    return
   }
 
   public setValue(
@@ -195,6 +264,9 @@ export class TextControl implements IControlInstance {
         if (!value.length) {
           this.control.addPlaceholder(startIndex)
         }
+        if (startIndex === 0 && elementList[0].splitTdTag) {
+          return draw.fixPosition(true) ?? startIndex
+        }
         return startIndex
       } else {
         if (
@@ -213,6 +285,9 @@ export class TextControl implements IControlInstance {
           if (!value.length) {
             this.control.addPlaceholder(startIndex - 1)
           }
+          if (startIndex === 1 && elementList[0].splitTdTag) {
+            return draw.fixPosition(true) ?? startIndex - 1
+          }
           return startIndex - 1
         }
       }
@@ -228,16 +303,27 @@ export class TextControl implements IControlInstance {
         if (!value.length) {
           this.control.addPlaceholder(startIndex)
         }
+        if (startIndex === 0 && elementList[0].splitTdTag) {
+          return draw.fixPosition(true) ?? startIndex
+        }
         return startIndex
       } else {
-        const endNextElement = elementList[endIndex + 1]
+        const endNextElement: IElement | undefined = elementList[endIndex + 1]
+        if (!endNextElement) {
+          // 未找到下一个元素 判断是否是拆分单元格
+          const curTd = draw.getTd()
+          if (curTd?.linkTdNextId && startElement.controlId) {
+            this.removeNextControlElement(startElement.controlId)
+          }
+        }
         if (
-          ((startElement.controlComponent === ControlComponent.PREFIX ||
+          endNextElement &&
+          (((startElement.controlComponent === ControlComponent.PREFIX ||
             startElement.controlComponent === ControlComponent.PRE_TEXT) &&
             endNextElement.controlComponent === ControlComponent.PLACEHOLDER) ||
-          endNextElement.controlComponent === ControlComponent.POSTFIX ||
-          endNextElement.controlComponent === ControlComponent.POST_TEXT ||
-          startElement.controlComponent === ControlComponent.PLACEHOLDER
+            endNextElement.controlComponent === ControlComponent.POSTFIX ||
+            endNextElement.controlComponent === ControlComponent.POST_TEXT ||
+            startElement.controlComponent === ControlComponent.PLACEHOLDER)
         ) {
           // 前缀、后缀、占位符
           return this.control.removeControl(startIndex)
@@ -247,6 +333,9 @@ export class TextControl implements IControlInstance {
           const value = this.getValue()
           if (!value.length) {
             this.control.addPlaceholder(startIndex)
+          }
+          if (startIndex === 0 && elementList[0].splitTdTag) {
+            return draw.fixPosition(true) ?? startIndex
           }
           return startIndex
         }

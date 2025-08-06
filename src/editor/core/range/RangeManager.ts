@@ -390,9 +390,10 @@ export class RangeManager {
   }
 
   public getIsCanInput(): boolean {
-    const { startIndex, endIndex } = this.getRange()
-    if (!~startIndex && !~endIndex) return false
-    const elementList = this.draw.getElementList()
+    const {
+      range: { startIndex, endIndex },
+      elementList
+    } = this.getRangeElement()
     const startElement = elementList[startIndex]
     if (startIndex === endIndex) {
       return (
@@ -615,8 +616,7 @@ export class RangeManager {
   }
 
   public shrinkBoundary(context: IControlContext = {}) {
-    const elementList = context.elementList || this.draw.getElementList()
-    const range = context.range || this.getRange()
+    const { elementList, range } = this.getRangeElement(context)
     const { startIndex, endIndex } = range
     if (!~startIndex && !~endIndex) return
     const startElement = elementList[startIndex]
@@ -726,5 +726,25 @@ export class RangeManager {
       .map(s => s.value)
       .join('')
       .replace(new RegExp(ZERO, 'g'), '')
+  }
+
+  public getRangeElement(context: IControlContext = {}): {
+    elementList: IElement[]
+    range: { startIndex: number; endIndex: number }
+  } {
+    const elementList = context.elementList || this.draw.getElementList()
+    const range = context.range || this.getRange()
+    const { splitTdRange } = range
+    const result = {
+      elementList,
+      range
+    }
+    if (splitTdRange) {
+      // 跨页单元格
+      result.range = splitTdRange
+      result.elementList =
+        this.draw.getSplitTdValues(splitTdRange.originalId) ?? []
+    }
+    return result
   }
 }

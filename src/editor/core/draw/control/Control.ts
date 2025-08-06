@@ -231,9 +231,11 @@ export class Control {
 
   // 判断选区是否在控件内
   public getIsRangeWithinControl(): boolean {
-    const { startIndex, endIndex } = this.getRange()
+    const {
+      range: { startIndex, endIndex },
+      elementList
+    } = this.range.getRangeElement()
     if (!~startIndex && !~endIndex) return false
-    const elementList = this.getElementList()
     const startElement = elementList[startIndex]
     const endElement = elementList[endIndex]
     if (
@@ -430,7 +432,7 @@ export class Control {
     const value = this.activeControlValue
     const activeElement = this.activeControl.getElement()
     if (value?.length) {
-      control = zipElementList(value)[0].control!
+      control = value[0].control!
     } else {
       control = pickElementAttr(deepClone(activeElement)).control!
       control.value = []
@@ -770,8 +772,9 @@ export class Control {
     const nextElement = elementList[startIndex + 1]
     if (
       startElement.controlComponent === ControlComponent.PLACEHOLDER ||
-      nextElement.controlComponent === ControlComponent.PLACEHOLDER
+      nextElement?.controlComponent === ControlComponent.PLACEHOLDER
     ) {
+      // 删除占位符
       let isHasSubmitHistory = false
       let index = startIndex
       while (index < elementList.length) {
