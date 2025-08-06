@@ -119,7 +119,9 @@ export class RangeManager {
     if (splitTdRange) {
       // 跨页单元格选区特殊处理
       const list = this.draw.getSplitTdValues(splitTdRange.originalId)!
-      return list.slice(splitTdRange.startIndex + 1, splitTdRange.endIndex + 1)
+      return list
+        .slice(splitTdRange.startIndex + 1, splitTdRange.endIndex + 1)
+        .filter(item => !(item.splitTdTag && item.value === ZERO))
     }
     const elementList = this.draw.getElementList()
     return elementList.slice(startIndex + 1, endIndex + 1)
