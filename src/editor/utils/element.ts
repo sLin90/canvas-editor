@@ -745,10 +745,12 @@ export function zipElementList(
                         ({ id }) => id === td.originalId
                       )!
                       if (originalTd) {
+                        if (td.value[0]?.splitTdTag) {
+                          // 如果第一个值是拆分单元格标记，则删除
+                          td.value.splice(0, 1)
+                        }
                         // 合并value
-                        originalTd.value.push(
-                          ...td.value.filter(item => !item.splitTdTag)
-                        )
+                        originalTd.value.push(...td.value)
                         originalTd.rowspan =
                           originalTd.originalRowspan ?? originalTd.rowspan
                         break

@@ -1465,11 +1465,14 @@ export class Draw {
                           ({ id }) => id === td.originalId
                         )!
                         if (originalTd) {
+                          if (td.value[0]?.splitTdTag) {
+                            // 如果第一个值是拆分单元格标记，则删除
+                            td.value.splice(0, 1)
+                          }
                           // 合并value
                           originalTd.value.push(
                             // 过滤拆分单元格标记
                             ...td.value
-                              .filter(item => !item.splitTdTag)
                               // 更新元素的表格信息
                               .map(val =>
                                 this.updateElementTableInfo(
@@ -1695,16 +1698,11 @@ export class Draw {
                       if (td.value.length) {
                         if (td.value[0].value !== ZERO) {
                           // 如果没有占位符,插入占位符
-                          const splitTag:IElement = {
+                          td.value.unshift({
                             ...deepClone(td.original.value.slice(-1).pop()),
-                            value: ZERO
-                          };
-                          // 添加拆分标记 使用enumerable 防止插入新元素时解构得到标记
-                          Object.defineProperty(splitTag, 'splitTdTag', {
-                            value: true,
-                            enumerable: false,
+                            value: ZERO,
+                            splitTdTag: true
                           })
-                          td.value.unshift(splitTag)
                         }
                       }
                     })
