@@ -1519,6 +1519,11 @@ export class Draw {
             isPagingMode
           })
         })
+        element.trList?.forEach(tr => {
+          tr.tdList.forEach(td => {
+            this.tdMap.set(td.id!, td)
+          })
+        })
         const tableHeight = this.tableParticle.getTableHeight(element)
         const tableWidth = this.tableParticle.getTableWidth(element)
         element.width = tableWidth
@@ -2839,6 +2844,7 @@ export class Draw {
     if (isCompute) {
       // 需要重新计算文档信息 立即清空缓存
       this.splitTdValueMap.clear()
+      this.tdMap.clear()
       // 清空浮动元素位置信息
       this.position.setFloatPositionList([])
       if (isPagingMode) {
