@@ -69,6 +69,7 @@ import {
 import { IRowElement } from '../../../interface/Row'
 import { RowFlex } from '../../../dataset/enum/Row'
 import { ZERO } from '../../../dataset/constant/Common'
+import { ITd } from '../../../interface/table/Td'
 
 interface IMoveCursorResult {
   newIndex: number
@@ -708,7 +709,10 @@ export class Control {
 
   public removeControl(
     startIndex: number,
-    context: IControlContext = {}
+    context: IControlContext & {
+      removePrev?: () => void
+      removeNext?: () => void
+    } = {}
   ): number | null {
     const elementList = context.elementList || this.getElementList()
     const startElement = elementList[startIndex]
@@ -757,13 +761,88 @@ export class Control {
     }
     if (!~leftIndex && !~rightIndex) return startIndex
     leftIndex = ~leftIndex ? leftIndex : 0
+    const leftElement = elementList[leftIndex + 1]
+    const leftControl = leftElement.control
+    const isTextControl =
+      leftControl?.type &&
+      [
+        ControlType.TEXT,
+        ControlType.DATE,
+        ControlType.NUMBER,
+        ControlType.SELECT
+      ].includes(leftControl.type)
+    let isSplitTd = !!elementList[0]?.splitTdTag
+
+    if (
+      !context.removeNext &&
+      isTextControl &&
+      (leftElement.controlComponent !== ControlComponent.PREFIX ||
+        leftElement.splitTdTag)
+    ) {
+      // 第一个元素不是前缀元素
+      if (context.removePrev) {
+        context.removePrev()
+      } else {
+        const curTd = this.draw.getTd()
+        if (curTd) {
+          this.createRemoveControlHandler(curTd, startElement.controlId!, true)
+        }
+      }
+    }
+    if (
+      !context.removePrev &&
+      isTextControl &&
+      elementList[rightIndex].controlComponent !== ControlComponent.POSTFIX
+    ) {
+      // 最后一个元素不是后缀元素
+      if (context.removeNext) {
+        context.removeNext()
+      } else {
+        const curTd = this.draw.getTd()
+        isSplitTd = !!curTd?.linkTdNextId
+        if (curTd) {
+          this.createRemoveControlHandler(curTd, startElement.controlId!, false)
+        }
+      }
+    }
+
     // 删除元素
     this.draw.spliceElementList(
       elementList,
       leftIndex + 1,
       rightIndex - leftIndex
     )
+    if (!context.elementList && isSplitTd && leftIndex === 0) {
+      return this.draw.fixPosition(true) ?? leftIndex
+    }
     return leftIndex
+  }
+  private createRemoveControlHandler(
+    curTd: ITd,
+    controlId: string,
+    prev: boolean
+  ) {
+    if (prev) {
+      const prevTd = this.draw.getTdById(curTd!.linkTdPrevId!)
+      if (prevTd && prevTd.value.splice(-1)[0]?.controlId === controlId) {
+        this.removeControl(prevTd.value.length - 1, {
+          elementList: prevTd.value,
+          removePrev: () => {
+            this.createRemoveControlHandler(prevTd, controlId, prev)
+          }
+        })
+      }
+    } else {
+      const nextTd = this.draw.getTdById(curTd!.linkTdNextId!)
+      if (nextTd && nextTd.value[1]?.controlId === controlId) {
+        this.removeControl(1, {
+          elementList: nextTd.value,
+          removeNext: () => {
+            this.createRemoveControlHandler(nextTd, controlId, prev)
+          }
+        })
+      }
+    }
   }
 
   public removePlaceholder(startIndex: number, context: IControlContext = {}) {

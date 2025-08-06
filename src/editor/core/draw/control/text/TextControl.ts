@@ -41,14 +41,12 @@ export class TextControl implements IControlInstance {
     let { startIndex } = context.range || this.control.getRange()
     const draw = this.control.getDraw()
     const curTd = draw.getTd()
-    const { index } = draw.getPosition().getPositionContext()
     if (startIndex >= elementList.length) {
       startIndex = elementList.length - 1
     }
     const startElement = elementList[startIndex]
     const data: IElement[] = []
 
-    let findIndex = index
     let findTd = curTd
     // 向左查找
     let prevList = elementList
@@ -57,12 +55,11 @@ export class TextControl implements IControlInstance {
       if (preIndex < 0) {
         if (findTd?.linkTdPrevId) {
           // 超出边界 进入nextTd
-          const prev = draw.findLinkTdPrev(findIndex!, findTd.linkTdPrevId)
-          if (prev) {
-            prevList = prev.td.value
+          const prevTd = draw.getTdById(findTd.linkTdPrevId)
+          if (prevTd) {
+            prevList = prevTd.value
             preIndex = prevList.length - 1
-            findIndex = prev.originalIndex
-            findTd = prev.td
+            findTd = prevTd
             continue
           }
         }
@@ -81,7 +78,6 @@ export class TextControl implements IControlInstance {
       preIndex--
     }
 
-    findIndex = index
     findTd = curTd
     // 向右查找
     let nextList = elementList
@@ -90,12 +86,11 @@ export class TextControl implements IControlInstance {
       if (nextIndex >= nextList.length) {
         if (findTd?.linkTdNextId) {
           // 超出边界 进入nextTd
-          const next = draw.findLinkTdNext(findIndex!, findTd.linkTdNextId)
-          if (next) {
-            nextList = next.td.value
+          const nextTd = draw.getTdById(findTd.linkTdNextId)
+          if (nextTd) {
+            nextList = nextTd.value
             nextIndex = 0
-            findIndex = next.originalIndex
-            findTd = next.td
+            findTd = nextTd
             continue
           }
         }
@@ -118,27 +113,20 @@ export class TextControl implements IControlInstance {
   }
   public removeNextControlElement(
     controlId: string,
-    positionIndex?: number,
     nextTdId?: string
   ): IElement | undefined {
     const draw = this.control.getDraw()
     nextTdId = nextTdId ?? draw.getTd()?.linkTdNextId
     if (nextTdId) {
-      const index =
-        positionIndex ?? draw.getPosition().getPositionContext().index
-      const next = draw.findLinkTdNext(index!, nextTdId)
-      if (next) {
-        if (next.td.value.length) {
-          if (next.td.value[1].controlId === controlId) {
-            draw.spliceElementList(next.td.value, 1, 1)
-            return next.td.value[1]
+      const nextTd = draw.getTdById(nextTdId)
+      if (nextTd) {
+        if (nextTd.value.length) {
+          if (nextTd.value[1].controlId === controlId) {
+            draw.spliceElementList(nextTd.value, 1, 1)
+            return nextTd.value[1]
           }
-        } else if (next.td.linkTdNextId) {
-          return this.removeNextControlElement(
-            controlId,
-            next.originalIndex,
-            next.td.linkTdNextId
-          )
+        } else if (nextTd.linkTdNextId) {
+          return this.removeNextControlElement(controlId, nextTd.linkTdNextId)
         }
       }
     }

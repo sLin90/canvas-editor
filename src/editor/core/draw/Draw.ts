@@ -191,6 +191,7 @@ export class Draw {
   private lazyRenderIntersectionObserver: IntersectionObserver | null
   private printModeData: Required<IEditorData> | null
   private splitTdValueMap: Map<string, IElement[]> = new Map() // 缓存拆分单元格，用于快速获取
+  private tdMap: Map<string, ITd> = new Map()
 
   constructor(
     rootContainer: HTMLElement,
@@ -1781,18 +1782,17 @@ export class Draw {
                 tr.tdList.forEach(td => {
                   delete td.valueStartIndex
                   if (td.linkTdPrevId) {
-                    const linkTd = this.findLinkTdPrev(i + 1, td.linkTdPrevId!)
-                    td.valueStartIndex = linkTd
-                      ? (linkTd.td.valueStartIndex ?? 0) +
-                        linkTd.td.value.length
+                    const prevTd = this.getTdById(td.linkTdPrevId!)
+                    td.valueStartIndex = prevTd
+                      ? (prevTd.valueStartIndex ?? 0) + prevTd.value.length
                       : 0
                     if (this.splitTdValueMap.has(td.originalId!)) {
                       this.splitTdValueMap
                         .get(td.originalId!)!
                         .push(...td.value)
-                    } else if (linkTd) {
+                    } else if (prevTd) {
                       this.splitTdValueMap.set(td.originalId!, [
-                        ...linkTd.td.value,
+                        ...prevTd.value,
                         ...td.value
                       ])
                     }
@@ -1843,6 +1843,16 @@ export class Draw {
             }
           }
         }
+        element.trList?.forEach((tr, trIndex) => {
+          tr.tdList.forEach((td, tdIndex) => {
+            td.tableIndex = i
+            td.tableId = element.id
+            td.trIndex = trIndex
+            td.trId = tr.id
+            td.tdIndex = tdIndex
+            this.tdMap.set(td.id!, td)
+          })
+        })
       } else if (element.type === ElementType.SEPARATOR) {
         const {
           separator: { lineWidth }
@@ -3197,51 +3207,8 @@ export class Draw {
     return undefined
   }
 
-  public findLinkTdPrev(
-    index: number,
-    linkTdPrevId: string
-  ): FindTdRes | undefined {
-    const originalElementList = this.getOriginalElementList()
-    const originalIndex = index - 1
-    const prevElement = originalElementList[originalIndex]
-    for (
-      let trIndex = prevElement.trList!.length - 1;
-      trIndex >= 0;
-      trIndex--
-    ) {
-      const tr = prevElement.trList![trIndex]
-      const findTd = tr.tdList.find(td => td.id === linkTdPrevId)
-      if (findTd) {
-        return {
-          originalIndex,
-          table: prevElement,
-          trIndex,
-          tr,
-          td: findTd
-        }
-      }
-    }
-    return undefined
-  }
-
-  public findLinkTdNext(index: number, tdId: string): FindTdRes | undefined {
-    const originalElementList = this.getOriginalElementList()
-    const originalIndex = index + 1
-    const prevElement = originalElementList[originalIndex]
-    for (let trIndex = 0; trIndex < prevElement.trList!.length; trIndex++) {
-      const tr = prevElement.trList![trIndex]
-      const findTd = tr.tdList.find(td => td.id === tdId)
-      if (findTd) {
-        return {
-          originalIndex,
-          table: prevElement,
-          trIndex,
-          tr,
-          td: findTd
-        }
-      }
-    }
-    return undefined
+  public getTdById(id: string) {
+    return this.tdMap.get(id)
   }
 
   public isSplitTd(tdA: ITd, tdB: ITd): boolean {
@@ -3263,25 +3230,22 @@ export class Draw {
       return
     }
     const { startIndex, endIndex } = splitTdRange
-    const positionContext = this.position.getPositionContext()
-    let { index } = positionContext
     let curTd = this.getTd()
     if (curTd) {
-      if ((curTd?.valueStartIndex ?? 0) >= startIndex) {
+      if ((curTd.valueStartIndex ?? 0) >= startIndex) {
         let tdStartIndex = -1
         while (tdStartIndex < 0) {
           // 当前td是结束单元格
-          const find = this.findLinkTdPrev(index!, curTd.linkTdPrevId!)
-          if (find?.td) {
-            tdStartIndex = startIndex - (find.td.valueStartIndex ?? 0)
+          const prevTd = this.getTdById(curTd.linkTdPrevId!)
+          if (prevTd) {
+            tdStartIndex = startIndex - (prevTd.valueStartIndex ?? 0)
             const start = Math.max(0, tdStartIndex)
             this.spliceElementList(
-              find.td.value,
+              prevTd.value,
               start + 1,
-              find.td.value.length - start - 1
+              prevTd.value.length - start - 1
             )
-            curTd = find.td
-            index = find.originalIndex
+            curTd = prevTd
           } else {
             // 退出循环
             tdStartIndex = 0
@@ -3291,17 +3255,16 @@ export class Draw {
         // 当前td是开始单元格
         let tdEndIndex = 1
         while (tdEndIndex > 0) {
-          const find = this.findLinkTdNext(index!, curTd.linkTdNextId!)
-          if (find?.td) {
-            const tdStartIndex = find.td.valueStartIndex ?? 0
-            tdEndIndex = endIndex - (tdStartIndex + find.td.value.length)
+          const nextTd = this.getTdById(curTd.linkTdNextId!)
+          if (nextTd) {
+            const tdStartIndex = nextTd.valueStartIndex ?? 0
+            tdEndIndex = endIndex - (tdStartIndex + nextTd.value.length)
             const deleteCount = Math.min(
-              find.td.value.length,
+              nextTd.value.length,
               endIndex - tdStartIndex + 1
             )
-            this.spliceElementList(find.td.value, 0, deleteCount)
-            curTd = find.td
-            index = find.originalIndex
+            this.spliceElementList(nextTd.value, 0, deleteCount)
+            curTd = nextTd
           } else {
             tdEndIndex = 0
           }
@@ -3319,12 +3282,4 @@ interface FindTableChildrenElementRes {
   td: ITd
   tdIndex: number
   elementIndex: number
-}
-
-interface FindTdRes {
-  originalIndex: number
-  table: IElement
-  trIndex: number
-  tr: ITr
-  td: ITd
 }

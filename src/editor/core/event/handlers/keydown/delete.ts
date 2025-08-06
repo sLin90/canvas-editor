@@ -78,13 +78,10 @@ export function del(evt: KeyboardEvent, host: CanvasEvent) {
             const td = draw.getTd()
             if (td?.linkTdNextId) {
               // 拆分行 存在下一个td 进行删除
-              const nextTd = draw.findLinkTdNext(
-                positionContext.index!,
-                td.linkTdNextId
-              )
+              const nextTd = draw.getTdById(td.linkTdNextId)
               if (nextTd) {
                 end = false
-                draw.spliceElementList(nextTd.td.value, 1, 1)
+                draw.spliceElementList(nextTd.value, 1, 1)
               }
             }
           }

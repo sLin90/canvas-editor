@@ -101,21 +101,18 @@ export function left(evt: KeyboardEvent, host: CanvasEvent) {
         const currentTd = draw.getTd()
         if (currentTd?.linkTdPrevId) {
           // 当前单元格是跨页拆分的单元格，找到前一页单元格
-          const linkTdRes = draw.findLinkTdPrev(
-            positionContext.index!,
-            currentTd.linkTdPrevId
-          )
-          if (linkTdRes) {
+          const prevTd = draw.getTdById(currentTd.linkTdPrevId)
+          if (prevTd) {
             position.setPositionContext({
               ...positionContext,
               isTable: true,
-              index: linkTdRes.originalIndex,
-              trIndex: linkTdRes.trIndex,
-              tdId: linkTdRes.td.id,
-              trId: linkTdRes.tr.id,
-              tableId: linkTdRes.table.id
+              index: prevTd.tableIndex,
+              trIndex: prevTd.trIndex,
+              tdId: prevTd.id,
+              trId: prevTd.trId,
+              tableId: prevTd.tableId
             })
-            anchorStartIndex = linkTdRes.td.value.length - 1
+            anchorStartIndex = prevTd.value.length - 1
             anchorEndIndex = anchorStartIndex
           }
         } else {

@@ -99,18 +99,18 @@ export function right(evt: KeyboardEvent, host: CanvasEvent) {
       if (!nextElement) {
         const currentTd = draw.getTd()
         // 存在拆分单元格
-        const linkTdRes = currentTd?.linkTdNextId
-          ? draw.findLinkTdNext(positionContext.index!, currentTd.linkTdNextId)
+        const nextTd = currentTd?.linkTdNextId
+          ? draw.getTdById(currentTd.linkTdNextId)
           : undefined
-        if (linkTdRes?.td.value.length) {
+        if (nextTd?.value.length) {
           position.setPositionContext({
             ...positionContext,
             isTable: true,
-            index: linkTdRes.originalIndex,
-            trIndex: linkTdRes.trIndex,
-            tdId: linkTdRes.td.id,
-            trId: linkTdRes.tr.id,
-            tableId: linkTdRes.table.id
+            index: nextTd.tableIndex,
+            trIndex: nextTd.trIndex,
+            tdId: nextTd.id,
+            trId: nextTd.trId,
+            tableId: nextTd.tableId
           })
           anchorStartIndex = 0
           anchorEndIndex = anchorStartIndex
