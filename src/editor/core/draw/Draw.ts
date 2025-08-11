@@ -1493,7 +1493,8 @@ export class Draw {
                     }
                     return true
                   })
-                  return !!nexTr.tdList.length
+                  // 删除拆分行
+                  return !nexTr.originalId
                 })
 
               element.trList!.push(...nexTrList)
@@ -1509,6 +1510,18 @@ export class Draw {
             elementList.splice(i + 1, combineCount)
           }
         }
+
+        // 删除无效行
+        let rowSpan = 0
+        element.trList = element.trList!.filter(tr => {
+          if (!tr.tdList.length) {
+            rowSpan--
+          } else {
+            rowSpan = Math.max(...tr.tdList.map(td => td.rowspan))
+          }
+          return !!tr.tdList.length || !!rowSpan
+        })
+
         element.pagingIndex = element.pagingIndex ?? 0
         // 计算出表格高度
         this.tableParticle.computeTrHeight(element, (td: ITd) => {
@@ -1592,6 +1605,7 @@ export class Draw {
                 const cloneTr: CloneTr = {
                   ...deepClone(originTr),
                   id: getUUID(),
+                  originalId: originTr.originalId ?? originTr.id,
                   minHeight: undefined,
                   tdList: element
                     .colgroup!.map((_col, cIdx): CloneTd | undefined => {
@@ -1705,7 +1719,7 @@ export class Draw {
                         if (td.value[0].value !== ZERO) {
                           // 如果没有占位符,插入占位符
                           td.value.unshift({
-                            ...deepClone(td.original.value.slice(-1).pop()),
+                            ...td.original.value.slice(-1).pop(),
                             value: ZERO,
                             splitTdTag: true
                           })
@@ -1848,16 +1862,7 @@ export class Draw {
             }
           }
         }
-        element.trList?.forEach((tr, trIndex) => {
-          tr.tdList.forEach((td, tdIndex) => {
-            td.tableIndex = i
-            td.tableId = element.id
-            td.trIndex = trIndex
-            td.trId = tr.id
-            td.tdIndex = tdIndex
-            this.tdMap.set(td.id!, td)
-          })
-        })
+        this.initTableElementIndex(element, i)
       } else if (element.type === ElementType.SEPARATOR) {
         const {
           separator: { lineWidth }
@@ -3143,6 +3148,19 @@ export class Draw {
     }
   }
 
+  public initTableElementIndex(element: IElement, index?: number) {
+    element.trList?.forEach((tr, trIndex) => {
+      tr.tdList.forEach((td, tdIndex) => {
+        td.tableIndex = index
+        td.tableId = element.id
+        td.trIndex = trIndex
+        td.trId = tr.id
+        td.tdIndex = tdIndex
+        this.tdMap.set(td.id!, td)
+      })
+    })
+  }
+
   public clearElementEffect(element: IElement) {
     element.trList?.forEach(tr => {
       tr.minHeight = tr.originalMinHeight ?? tr.minHeight
@@ -3217,6 +3235,59 @@ export class Draw {
     return this.tdMap.get(id)
   }
 
+  public getLinkTdPrevHasValue(prevTdId: string): ITd | undefined {
+    const prevTd = this.getTdById(prevTdId)
+    if (prevTd) {
+      if (prevTd.value.length) {
+        return prevTd
+      } else {
+        return this.getLinkTdPrevHasValue(prevTd.linkTdPrevId!)
+      }
+    }
+    return
+  }
+
+  public getFirstLinkTd(id: string): ITd | undefined {
+    const td = this.getTdById(id)
+    if (td?.linkTdPrevId) {
+      return this.getLastLinkTd(td.linkTdPrevId)
+    }
+    return td
+  }
+
+  public getLastLinkTd(id: string): ITd | undefined {
+    const td = this.getTdById(id)
+    if (td?.linkTdNextId) {
+      return this.getLastLinkTd(td.linkTdNextId)
+    }
+    return td
+  }
+
+  public removeLinkTd(elementList: IElement[], id: string) {
+    const td = this.getTdById(id)
+    if (td) {
+      if (td.linkTdPrevId) {
+        const prevTd = this.getTdById(td.linkTdPrevId)
+        if (prevTd) {
+          delete prevTd.linkTdNextId
+          this.removeLinkTd(elementList, td.linkTdPrevId)
+        }
+      }
+      if (td.linkTdNextId) {
+        const nextTd = this.getTdById(td.linkTdNextId)
+        if (nextTd) {
+          delete nextTd.linkTdPrevId
+          this.removeLinkTd(elementList, td.linkTdNextId)
+        }
+      }
+      elementList[td.tableIndex!].trList![td.trIndex!].tdList.splice(
+        td.tdIndex!,
+        1
+      )
+      this.initTableElementIndex(elementList[td.tableIndex!], td.tableIndex!)
+    }
+  }
+
   public isSplitTd(tdA: ITd, tdB: ITd): boolean {
     return (
       (!!tdA?.originalId || !!tdB?.originalId) &&
@@ -3276,6 +3347,41 @@ export class Draw {
           }
         }
       }
+    }
+  }
+
+  public getTablesByPagingId(
+    elementList: IElement[],
+    pagingId: string,
+    index: number
+  ) {
+    const indexList: number[] = []
+    const list: IElement[] = []
+    if (elementList[index].pagingId === pagingId) {
+      indexList.push(index)
+      list.push(elementList[index])
+      // 向前找
+      for (let i = index - 1; i >= 0; i--) {
+        if (elementList[i].pagingId === pagingId) {
+          list.unshift(elementList[i])
+          indexList.push(i)
+        } else {
+          break
+        }
+      }
+      // 向后找
+      for (let i = index + 1; i < elementList.length; i++) {
+        if (elementList[i].pagingId === pagingId) {
+          list.push(elementList[i])
+          indexList.push(i)
+        } else {
+          break
+        }
+      }
+    }
+    return {
+      list,
+      startIndex: indexList.sort()[0]
     }
   }
 }

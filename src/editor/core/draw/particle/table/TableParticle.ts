@@ -603,9 +603,15 @@ export class TableParticle {
     > = {}
     const lastRowSpanId: Record<number, string> = {}
     // 计算表格内元素信息
-    trList.forEach((tr, trIndex) => {
+    for (let trIndex = 0; trIndex < trList.length; trIndex++) {
+      const tr = trList[trIndex]
+      if (!tr.tdList.length) {
+        tr.height = 0
+        continue
+      }
       const tdHeightList: number[] = []
-      element.colgroup!.forEach((_, colIndex) => {
+      const tdRowspanHeightList: number[] = []
+      for (let colIndex = 0; colIndex < element.colgroup!.length; colIndex++) {
         const td = tr.tdList.find(td => td.colIndex === colIndex)
         if (td) {
           const rowList = computeRowList ? computeRowList(td) : td.rowList!
@@ -625,6 +631,7 @@ export class TableParticle {
               preMinHeight: 0,
               extraHeight: curTdHeight
             }
+            tdRowspanHeightList.push(curTdHeight)
           } else {
             if (td.height! < curTdHeight) {
               td.height = curTdHeight
@@ -642,8 +649,11 @@ export class TableParticle {
             tdHeightList.push(rowSpanTd.extraHeight)
           }
         }
-      })
-      const curTrHeight = Math.max(...tdHeightList)
+      }
+
+      const curTrHeight = Math.max(
+        ...(tdHeightList.length ? tdHeightList : tdRowspanHeightList)
+      )
       // 更新跨行单元格额外高度
       Object.values(rowSpanMap).forEach(data => {
         if (data.rowSpan[0] <= trIndex && data.rowSpan[1] >= trIndex) {
@@ -653,7 +663,7 @@ export class TableParticle {
         }
       })
       tr.height = curTrHeight
-      element.colgroup!.forEach((_, colIndex) => {
+      for (let colIndex = 0; colIndex < element.colgroup!.length; colIndex++) {
         const td =
           tr.tdList.find(td => td.colIndex === colIndex) ??
           this.findPreRowSpanTd(trList, trIndex, colIndex)
@@ -664,8 +674,8 @@ export class TableParticle {
           td.realHeight = curTrHeight + preHeight
           td.realMinHeight = preMinHeight
         }
-      })
-    })
+      }
+    }
     // 需要重新计算表格内值
     this.computeRowColInfo(element)
   }
