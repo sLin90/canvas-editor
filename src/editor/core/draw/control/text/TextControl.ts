@@ -275,8 +275,9 @@ export class TextControl implements IControlInstance {
             this.control.addPlaceholder(startIndex - 1)
           }
           if (
-            startIndex === 1 &&
-            elementList[0].type === ElementType.SPLIT_TAG
+            (startIndex === 1 &&
+              elementList[0].type === ElementType.SPLIT_TAG) ||
+            startIndex === 0
           ) {
             return draw.fixPosition(true) ?? startIndex - 1
           }
