@@ -1493,7 +1493,7 @@ export class Draw {
                     }
                     return true
                   })
-                  // 删除拆分行
+                  // 删除空白拆分行
                   return !nexTr.originalId
                 })
 
@@ -1510,17 +1510,6 @@ export class Draw {
             elementList.splice(i + 1, combineCount)
           }
         }
-
-        // 删除无效行
-        let rowSpan = 0
-        element.trList = element.trList!.filter(tr => {
-          if (!tr.tdList.length) {
-            rowSpan--
-          } else {
-            rowSpan = Math.max(...tr.tdList.map(td => td.rowspan))
-          }
-          return !!tr.tdList.length || !!rowSpan
-        })
 
         element.pagingIndex = element.pagingIndex ?? 0
         // 计算出表格高度

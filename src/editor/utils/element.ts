@@ -760,7 +760,8 @@ export function zipElementList(
                   }
                   return true
                 })
-                return !!nextTr.tdList.length
+                // 删除空白拆分行
+                return !nextTr.originalId
               })
             element.trList!.push(...nextTrList)
             // 还原minHeight
