@@ -1,5 +1,6 @@
 import { ZERO } from '../../../../dataset/constant/Common'
 import { CanvasEvent } from '../../CanvasEvent'
+import { ElementType } from '../../../../dataset/enum/Element'
 
 export function backspace(evt: KeyboardEvent, host: CanvasEvent) {
   const draw = host.getDraw()
@@ -106,7 +107,9 @@ export function backspace(evt: KeyboardEvent, host: CanvasEvent) {
     // 拆分单元格 没有内容 或者 内容只剩占位符是需要修复位置
     needFixPosition =
       isSplitTd &&
-      (curIndex < 0 || (curIndex === 0 && !!elementList[curIndex].splitTdTag))
+      (curIndex < 0 ||
+        (curIndex === 0 &&
+          elementList[curIndex].type === ElementType.SPLIT_TAG))
   }
   draw.getGlobalEvent().setCanvasEventAbility()
   if (curIndex === null) {

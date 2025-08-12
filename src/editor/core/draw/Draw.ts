@@ -1466,7 +1466,7 @@ export class Draw {
                           ({ id }) => id === td.originalId
                         )!
                         if (originalTd) {
-                          if (td.value[0]?.splitTdTag) {
+                          if (td.value[0]?.type === ElementType.SPLIT_TAG) {
                             // 如果第一个值是拆分单元格标记，则删除
                             td.value.splice(0, 1)
                           }
@@ -1710,7 +1710,7 @@ export class Draw {
                           td.value.unshift({
                             ...td.original.value.slice(-1).pop(),
                             value: ZERO,
-                            splitTdTag: true
+                            type: ElementType.SPLIT_TAG
                           })
                         }
                       }
@@ -3024,7 +3024,8 @@ export class Draw {
             positionContext.tdId = findTd?.id
             newStartIndex = prev
               ? findTd.value.length - 1
-              : newStartIndex + findTd.value.filter(e => e.splitTdTag).length
+              : newStartIndex +
+                (findTd.value[0]?.type === ElementType.SPLIT_TAG ? 1 : 0)
             break
           }
         }

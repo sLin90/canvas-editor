@@ -163,8 +163,7 @@ export type IElement = IElementBasic &
   IBlockElement &
   ITitleElement &
   IListElement &
-  IAreaElement &
-  ITdLinkElement
+  IAreaElement
 
 export interface IElementMetrics {
   width: number
@@ -223,8 +222,4 @@ export interface IInsertElementListOption {
 
 export interface ISpliceElementListOption {
   isIgnoreDeletedRule?: boolean
-}
-
-export interface ITdLinkElement {
-  splitTdTag?: true
 }

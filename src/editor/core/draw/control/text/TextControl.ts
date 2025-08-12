@@ -15,6 +15,7 @@ import { IElement } from '../../../../interface/Element'
 import { omitObject, pickObject } from '../../../../utils'
 import { formatElementContext } from '../../../../utils/element'
 import { Control } from '../Control'
+import { ElementType } from '../../../../dataset/enum/Element'
 
 export class TextControl implements IControlInstance {
   private element: IElement
@@ -109,7 +110,7 @@ export class TextControl implements IControlInstance {
       }
       nextIndex++
     }
-    return data.filter(item => !item.splitTdTag)
+    return data.filter(item => item.type !== ElementType.SPLIT_TAG)
   }
   public removeNextControlElement(
     controlId: string,
@@ -252,7 +253,7 @@ export class TextControl implements IControlInstance {
         if (!value.length) {
           this.control.addPlaceholder(startIndex)
         }
-        if (startIndex === 0 && elementList[0].splitTdTag) {
+        if (startIndex === 0 && elementList[0].type === ElementType.SPLIT_TAG) {
           return draw.fixPosition(true) ?? startIndex
         }
         return startIndex
@@ -273,7 +274,10 @@ export class TextControl implements IControlInstance {
           if (!value.length) {
             this.control.addPlaceholder(startIndex - 1)
           }
-          if (startIndex === 1 && elementList[0].splitTdTag) {
+          if (
+            startIndex === 1 &&
+            elementList[0].type === ElementType.SPLIT_TAG
+          ) {
             return draw.fixPosition(true) ?? startIndex - 1
           }
           return startIndex - 1
@@ -291,7 +295,7 @@ export class TextControl implements IControlInstance {
         if (!value.length) {
           this.control.addPlaceholder(startIndex)
         }
-        if (startIndex === 0 && elementList[0].splitTdTag) {
+        if (startIndex === 0 && elementList[0].type === ElementType.SPLIT_TAG) {
           return draw.fixPosition(true) ?? startIndex
         }
         return startIndex
@@ -322,7 +326,10 @@ export class TextControl implements IControlInstance {
           if (!value.length) {
             this.control.addPlaceholder(startIndex)
           }
-          if (startIndex === 0 && elementList[0].splitTdTag) {
+          if (
+            startIndex === 0 &&
+            elementList[0].type === ElementType.SPLIT_TAG
+          ) {
             return draw.fixPosition(true) ?? startIndex
           }
           return startIndex

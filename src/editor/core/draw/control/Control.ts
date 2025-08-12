@@ -771,13 +771,13 @@ export class Control {
         ControlType.NUMBER,
         ControlType.SELECT
       ].includes(leftControl.type)
-    let isSplitTd = !!elementList[0]?.splitTdTag
+    let isSplitTd = elementList[0]?.type === ElementType.SPLIT_TAG
 
     if (
       !context.removeNext &&
       isTextControl &&
       (leftElement.controlComponent !== ControlComponent.PREFIX ||
-        leftElement.splitTdTag)
+        leftElement.type === ElementType.SPLIT_TAG)
     ) {
       // 第一个元素不是前缀元素
       if (context.removePrev) {

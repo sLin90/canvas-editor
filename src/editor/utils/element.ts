@@ -745,7 +745,7 @@ export function zipElementList(
                         ({ id }) => id === td.originalId
                       )!
                       if (originalTd) {
-                        if (td.value[0]?.splitTdTag) {
+                        if (td.value[0]?.type === ElementType.SPLIT_TAG) {
                           // 如果第一个值是拆分单元格标记，则删除
                           td.value.splice(0, 1)
                         }

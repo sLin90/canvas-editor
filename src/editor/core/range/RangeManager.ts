@@ -121,7 +121,7 @@ export class RangeManager {
       const list = this.draw.getSplitTdValues(splitTdRange.originalId)!
       return list
         .slice(splitTdRange.startIndex + 1, splitTdRange.endIndex + 1)
-        .filter(item => !(item.splitTdTag && item.value === ZERO))
+        .filter(item => item.type !== ElementType.SPLIT_TAG)
     }
     const elementList = this.draw.getElementList()
     return elementList.slice(startIndex + 1, endIndex + 1)
