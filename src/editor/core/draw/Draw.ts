@@ -116,6 +116,7 @@ import { TableOperate } from './particle/table/TableOperate'
 import { Area } from './interactive/Area'
 import { Badge } from './frame/Badge'
 import { IPositionContext } from '../../interface/Position'
+import { IControl } from '../../interface/Control'
 
 export class Draw {
   private container: HTMLDivElement
@@ -2964,7 +2965,12 @@ export class Draw {
       }
       // 表格工具重新渲染
       if (isCompute && !this.isReadonly() && positionContext.isTable) {
-        this.tableTool.render()
+        const originalElementList = this.getOriginalElementList()
+        if (
+          originalElementList[positionContext.index!].type === ElementType.TABLE
+        ) {
+          this.tableTool.render()
+        }
       }
       // 页眉指示器重新渲染
       if (isCompute && !this.zone.isMainActive()) {
@@ -2991,7 +2997,7 @@ export class Draw {
     })
 
     // 修复光标位置
-    this.fixPosition()
+    isSetCursor && this.fixPosition()
   }
 
   public fixPosition(prev = false): number | undefined {
@@ -3275,6 +3281,20 @@ export class Draw {
         1
       )
       this.initTableElementIndex(elementList[td.tableIndex!], td.tableIndex!)
+    }
+  }
+  public removeLinkTdControl(tdId: string, control: IControl) {
+    const td = this.getTdById(tdId)
+    if (td) {
+      for (let i = 0; i < td.value.length; i++) {
+        if (td.value[i].control === control) {
+          td.value.splice(i, 1)
+          i--
+        }
+      }
+      if (td.linkTdNextId) {
+        this.removeLinkTdControl(td.linkTdNextId, control)
+      }
     }
   }
 

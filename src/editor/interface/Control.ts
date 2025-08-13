@@ -140,6 +140,7 @@ export interface IControlInstance {
 export interface IControlContext {
   range?: IRange
   elementList?: IElement[]
+  tdId?: string
 }
 
 export interface IControlRuleOption {

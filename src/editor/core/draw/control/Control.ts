@@ -958,6 +958,7 @@ export class Control {
     const { id, conceptId, areaId } = payload
     const result: IGetControlValueResult = []
     if (!id && !conceptId) return result
+    const tdRecord = new Set<string>()
     const getValue = (elementList: IElement[], zone: EditorZone) => {
       let i = 0
       while (i < elementList.length) {
@@ -970,7 +971,15 @@ export class Control {
             const tr = trList[r]
             for (let d = 0; d < tr.tdList.length; d++) {
               const td = tr.tdList[d]
-              getValue(td.value, zone)
+              const tdId = td.originalId ?? td.id!
+              if (!tdRecord.has(tdId)) {
+                tdRecord.add(tdId)
+                if (td.linkTdNextId) {
+                  getValue(this.draw.getSplitTdValues(tdId)!, zone)
+                } else {
+                  getValue(td.value, zone)
+                }
+              }
             }
           }
         }
@@ -1061,8 +1070,10 @@ export class Control {
     if (!payload.length) return
     let isExistSet = false
     let isExistSubmitHistory = false
+    // 记录控件是否已经设置过值
+    const changeControls = new Map<IControl, boolean>()
     // 设置值
-    const setValue = (elementList: IElement[]) => {
+    const setValue = (elementList: IElement[], tdId?: string) => {
       let i = 0
       while (i < elementList.length) {
         const element = elementList[i]
@@ -1074,7 +1085,7 @@ export class Control {
             const tr = trList[r]
             for (let d = 0; d < tr.tdList.length; d++) {
               const td = tr.tdList[d]
-              setValue(td.value)
+              setValue(td.value, td.id)
             }
           }
         }
@@ -1106,10 +1117,16 @@ export class Control {
           startIndex: i - 1,
           endIndex: currentEndIndex - 2
         }
+        const endElement = elementList[fakeRange.endIndex + 1]
+        if (endElement.controlComponent !== ControlComponent.POSTFIX) {
+          fakeRange.endIndex += 1
+        }
         const controlContext: IControlContext = {
           range: fakeRange,
-          elementList
+          elementList,
+          tdId: tdId
         }
+        const changed = !!changeControls.get(element.control)
         const controlRule: IControlRuleOption = {
           isIgnoreDisabledRule: true,
           isIgnoreDeletedRule: true
@@ -1128,7 +1145,12 @@ export class Control {
           }
           const text = new TextControl(element, this)
           this.activeControl = text
-          if (formatValue.length) {
+          if (changed) {
+            text.clearValue(controlContext, {
+              ...controlRule,
+              isAddPlaceholder: false
+            })
+          } else if (formatValue.length) {
             text.setValue(formatValue, controlContext, controlRule)
           } else {
             text.clearValue(controlContext, controlRule)
@@ -1190,6 +1212,8 @@ export class Control {
             text.clearValue(controlContext, controlRule)
           }
         }
+
+        changeControls.set(element.control, true)
         // 控件值变更事件
         this.emitControlContentChange({
           context: controlContext
@@ -1367,7 +1391,8 @@ export class Control {
       const pageComponentKey = <keyof IEditorData>key
       const elementList = zipElementList(pageComponentData[pageComponentKey]!, {
         isClassifyArea: true,
-        extraPickAttrs: ['id']
+        // fix 更新属性丢失controlId
+        extraPickAttrs: ['id', 'controlId']
       })
       pageComponentData[pageComponentKey] = elementList
       formatElementList(elementList, {

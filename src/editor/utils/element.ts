@@ -618,7 +618,9 @@ export function zipElementList(
   options: IZipElementListOption = {}
 ): IElement[] {
   const { extraPickAttrs, isClassifyArea = false, isClone = true } = options
-  const elementList = isClone ? deepClone(payload) : payload
+  const elementList = (isClone ? deepClone(payload) : payload).filter(
+    element => element.type !== ElementType.SPLIT_TAG
+  )
   const zipElementListData: IElement[] = []
   let e = 0
   while (e < elementList.length) {

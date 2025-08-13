@@ -41,7 +41,7 @@ export class TextControl implements IControlInstance {
     const elementList = context.elementList || this.control.getElementList()
     let { startIndex } = context.range || this.control.getRange()
     const draw = this.control.getDraw()
-    const curTd = draw.getTd()
+    const curTd = context ? null : draw.getTd()
     if (startIndex >= elementList.length) {
       startIndex = elementList.length - 1
     }
@@ -64,6 +64,9 @@ export class TextControl implements IControlInstance {
             continue
           }
         }
+      }
+      if (preIndex < 0) {
+        break
       }
       const preElement = prevList[preIndex]
       if (
@@ -148,24 +151,61 @@ export class TextControl implements IControlInstance {
     }
     const elementList = context.elementList || this.control.getElementList()
     const range = context.range || this.control.getRange()
-    // 收缩边界到Value内
-    this.control.shrinkBoundary(context)
-    const { startIndex, endIndex } = range
+    let { startIndex, endIndex } = range
     const draw = this.control.getDraw()
-    // 移除选区元素
-    if (startIndex !== endIndex) {
-      draw.spliceElementList(
-        elementList,
-        startIndex + 1,
-        endIndex - startIndex,
-        [],
-        {
-          isIgnoreDeletedRule: options.isIgnoreDeletedRule
-        }
+
+    if (context.tdId) {
+      // api修改单元格中的控件值特殊处理
+      const control = elementList[startIndex + 1]!.control!
+      const curTd = draw.getTdById(context.tdId)!
+      const originalId = curTd.originalId ?? curTd.id!
+      const isSplitTd = curTd.originalId || curTd.linkTdNextId
+      const values = isSplitTd
+        ? draw.getSplitTdValues(originalId)!
+        : curTd.value
+
+      const controlValues = values.filter(
+        val => val.control === control && val.type !== ElementType.SPLIT_TAG
       )
+
+      let valueIndex = -1
+      for (let i = 0; i < controlValues.length; i++) {
+        if (
+          [ControlComponent.VALUE, ControlComponent.PLACEHOLDER].includes(
+            controlValues[i].controlComponent!
+          )
+        ) {
+          if (valueIndex === -1) {
+            valueIndex = i
+          }
+          controlValues.splice(i, 1)
+          i--
+        }
+      }
+      draw.removeLinkTdControl(originalId, control)
+      elementList.splice(startIndex, 0, ...controlValues)
+      startIndex = startIndex + valueIndex - 1
+      endIndex = startIndex
     } else {
-      // 移除空白占位符
-      this.control.removePlaceholder(startIndex, context)
+      // 收缩边界到Value内
+      this.control.shrinkBoundary(context)
+      startIndex = range.startIndex
+      endIndex = range.endIndex
+      // 移除选区元素
+      if (startIndex !== endIndex) {
+        draw.spliceElementList(
+          elementList,
+          startIndex + 1,
+          endIndex - startIndex,
+          [],
+          {
+            isIgnoreDeletedRule: options.isIgnoreDeletedRule
+          }
+        )
+      } else {
+        // 移除空白占位符
+        this.control.removePlaceholder(startIndex, context)
+      }
     }
     // 非文本类元素或前缀过渡掉样式属性
     const startElement = elementList[startIndex]
@@ -181,7 +221,7 @@ export class TextControl implements IControlInstance {
           ])
         : omitObject(startElement, ['type'])
     // 插入起始位置
-    const start = range.startIndex + 1
+    const start = startIndex + 1
     for (let i = 0; i < data.length; i++) {
       const newElement: IElement = {
         ...anchorElement,
@@ -209,6 +249,7 @@ export class TextControl implements IControlInstance {
     }
     const elementList = context.elementList || this.control.getElementList()
     const range = context.range || this.control.getRange()
+    this.control.shrinkBoundary(context)
     const { startIndex, endIndex } = range
     this.control
       .getDraw()
@@ -221,9 +262,11 @@ export class TextControl implements IControlInstance {
           isIgnoreDeletedRule: options.isIgnoreDeletedRule
         }
       )
-    const value = this.getValue(context)
-    if (!value.length) {
-      this.control.addPlaceholder(startIndex, context)
+    if (options.isAddPlaceholder !== false) {
+      const value = this.getValue(context)
+      if (!value.length) {
+        this.control.addPlaceholder(startIndex, context)
+      }
     }
     return startIndex
   }

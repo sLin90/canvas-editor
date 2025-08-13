@@ -119,9 +119,7 @@ export class RangeManager {
     if (splitTdRange) {
       // 跨页单元格选区特殊处理
       const list = this.draw.getSplitTdValues(splitTdRange.originalId)!
-      return list
-        .slice(splitTdRange.startIndex + 1, splitTdRange.endIndex + 1)
-        .filter(item => item.type !== ElementType.SPLIT_TAG)
+      return list.slice(splitTdRange.startIndex + 1, splitTdRange.endIndex + 1)
     }
     const elementList = this.draw.getElementList()
     return elementList.slice(startIndex + 1, endIndex + 1)
@@ -663,7 +661,10 @@ export class RangeManager {
         }
       }
       // 向右查找到第一个Value
-      if (startElement.controlComponent === ControlComponent.PREFIX) {
+      if (
+        startElement.controlComponent === ControlComponent.PREFIX ||
+        startElement.controlComponent === ControlComponent.PRE_TEXT
+      ) {
         let index = startIndex + 1
         while (index < elementList.length) {
           const nextElement = elementList[index]
@@ -685,14 +686,14 @@ export class RangeManager {
       }
       // 向左查找到第一个Value
       if (endElement.controlComponent !== ControlComponent.VALUE) {
-        let index = startIndex - 1
+        let index = endIndex - 1
         while (index > 0) {
           const preElement = elementList[index]
           if (
             preElement.controlId !== startElement.controlId ||
             preElement.controlComponent === ControlComponent.VALUE
           ) {
-            range.startIndex = index
+            range.endIndex = index
             break
           } else if (
             preElement.controlComponent === ControlComponent.PLACEHOLDER
