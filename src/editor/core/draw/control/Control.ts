@@ -1070,8 +1070,6 @@ export class Control {
     if (!payload.length) return
     let isExistSet = false
     let isExistSubmitHistory = false
-    // 记录控件是否已经设置过值
-    const changeControls = new Map<IControl, boolean>()
     // 设置值
     const setValue = (elementList: IElement[], tdId?: string) => {
       let i = 0
@@ -1089,7 +1087,7 @@ export class Control {
             }
           }
         }
-        if (!element.control) continue
+        if (!element.control || element.type === ElementType.SPLIT_TAG) continue
         // 获取设置值优先id、conceptId、areaId
         const payloadItem = payload.find(
           p =>
@@ -1105,28 +1103,20 @@ export class Control {
           isExistSubmitHistory = true
         }
         const { type } = element.control!
-        // 当前控件结束索引
-        let currentEndIndex = i
-        while (currentEndIndex < elementList.length) {
-          const nextElement = elementList[currentEndIndex]
-          if (nextElement.controlId !== element.controlId) break
-          currentEndIndex++
-        }
-        // 模拟光标选区上下文
-        const fakeRange = {
-          startIndex: i - 1,
-          endIndex: currentEndIndex - 2
-        }
-        const endElement = elementList[fakeRange.endIndex + 1]
-        if (endElement.controlComponent !== ControlComponent.POSTFIX) {
-          fakeRange.endIndex += 1
-        }
+        const { range, fullRange } = this.mergeControl({
+          elementList,
+          range: {
+            startIndex: i,
+            endIndex: i
+          },
+          tdId
+        })
         const controlContext: IControlContext = {
-          range: fakeRange,
+          range: fullRange ?? range,
           elementList,
           tdId: tdId
         }
-        const changed = !!changeControls.get(element.control)
+
         const controlRule: IControlRuleOption = {
           isIgnoreDisabledRule: true,
           isIgnoreDeletedRule: true
@@ -1145,12 +1135,7 @@ export class Control {
           }
           const text = new TextControl(element, this)
           this.activeControl = text
-          if (changed) {
-            text.clearValue(controlContext, {
-              ...controlRule,
-              isAddPlaceholder: false
-            })
-          } else if (formatValue.length) {
+          if (formatValue.length) {
             text.setValue(formatValue, controlContext, controlRule)
           } else {
             text.clearValue(controlContext, controlRule)
@@ -1213,7 +1198,6 @@ export class Control {
           }
         }
 
-        changeControls.set(element.control, true)
         // 控件值变更事件
         this.emitControlContentChange({
           context: controlContext
@@ -1775,4 +1759,111 @@ export class Control {
       row.width += left - controlFirstElementLeft
     }
   }
+
+  mergeControl(context: IControlContext = {}): IMergeControlContext {
+    const elementList = context.elementList || this.getElementList()
+    const range = context.range || this.getRange()
+    const { startIndex } = range
+    const tdId =
+      context.tdId ?? this.draw.getPosition().getPositionContext().tdId
+    const curTd = tdId ? this.draw.getTdById(tdId) : undefined
+    const startElement = elementList[startIndex]
+    if (!startElement?.controlId) {
+      return {
+        range,
+        elementList: [],
+        tdId
+      }
+    }
+    const fullRange: IRange = { startIndex, endIndex: startIndex }
+    const data: IElement[] = []
+    let remove = false
+    // 向左查找
+    let preIndex = startIndex
+    let preTd = curTd
+    let preElementList = elementList
+    while (preIndex >= 0) {
+      const preElement = preElementList[preIndex]
+      if (preElement.controlId !== startElement.controlId) break
+      if (preElement.type !== ElementType.SPLIT_TAG) {
+        data.unshift(preElement)
+        if (remove) {
+          preElementList.splice(preIndex, 1)
+          if (elementList[0].type === ElementType.SPLIT_TAG) {
+            elementList.splice(0, 1)
+          } else {
+            range.startIndex++
+            range.endIndex++
+          }
+          elementList.unshift(preElement)
+        }
+        fullRange.startIndex = preIndex
+      }
+      if (
+        preIndex === 0 &&
+        preElement.controlComponent !== ControlComponent.PREFIX &&
+        preTd?.linkTdPrevId
+      ) {
+        // 末尾元素未结束 分页单元格继续往后找
+        preTd = this.draw.getTdById(preTd.linkTdPrevId!)
+        if (preTd) {
+          preElementList = preTd.value
+          preIndex = preTd.value.length - 1
+          remove = true
+          continue
+        }
+      }
+      preIndex--
+    }
+
+    remove = false
+    // 向右查找
+    let nextIndex = startIndex + 1
+    let nextTd = curTd
+    let nextElementList = elementList
+    while (nextIndex < nextElementList.length) {
+      const nextElement = nextElementList[nextIndex]
+      if (nextElement.controlId !== startElement.controlId) break
+      if (nextElement.type !== ElementType.SPLIT_TAG) {
+        data.push(nextElement)
+        if (remove) {
+          nextElementList.splice(nextIndex, 1)
+          elementList.push(nextElement)
+          nextIndex--
+        }
+      }
+      if (
+        nextIndex === nextElementList.length - 1 &&
+        nextElement.controlComponent !== ControlComponent.POSTFIX &&
+        nextTd?.linkTdNextId
+      ) {
+        // 末尾元素未结束 分页单元格继续往后找
+        nextTd = this.draw.getTdById(nextTd.linkTdNextId)
+        if (nextTd) {
+          nextElementList = nextTd.value
+          nextIndex = 0
+          remove = true
+          continue
+        }
+      }
+      nextIndex++
+    }
+    fullRange.endIndex = fullRange.startIndex + data.length
+    return {
+      range,
+      elementList: elementList,
+      tdId,
+      fullRange: {
+        startIndex: fullRange.startIndex,
+        endIndex: fullRange.endIndex - 2
+      }
+    }
+  }
+}
+
+export interface IMergeControlContext {
+  range: IRange
+  elementList: IElement[]
+  tdId?: string
+  fullRange?: IRange
 }

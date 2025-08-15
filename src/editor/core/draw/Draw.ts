@@ -2942,6 +2942,11 @@ export class Draw {
             this.updateTableTool()
           }
         }
+        const elementList = this.getElementList()
+        if (elementList[endIndex] !== curElement) {
+          // 元素位置发生变化
+          curIndex = elementList.findIndex(element => element === curElement)
+        }
       }
       curIndex = this.setCursor(curIndex)
     } else if (this.range.getIsSelection()) {
@@ -3013,7 +3018,7 @@ export class Draw {
         const index = positionContext.index! + (prev ? -1 : 1)
         const elementList = this.getOriginalElementList()
         const table = elementList[index]
-        if (!table) {
+        if (!table?.trList) {
           return
         }
         newStartIndex = startIndex - list.length

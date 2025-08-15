@@ -256,14 +256,14 @@ export class SelectControl implements IControlInstance {
     if (!isIgnoreDisabledRule && this.control.getIsDisabledControl(context)) {
       return -1
     }
-    const elementList = context.elementList || this.control.getElementList()
-    const { startIndex } = context.range || this.control.getRange()
+    const { elementList, range } = this.control.mergeControl(context)
+    const { startIndex } = range
     const startElement = elementList[startIndex]
     let leftIndex = -1
     let rightIndex = -1
     // 向左查找
     let preIndex = startIndex
-    while (preIndex > 0) {
+    while (preIndex >= 0) {
       const preElement = elementList[preIndex]
       if (
         preElement.controlId !== startElement.controlId ||
@@ -329,8 +329,7 @@ export class SelectControl implements IControlInstance {
     ) {
       return
     }
-    const elementList = context.elementList || this.control.getElementList()
-    const range = context.range || this.control.getRange()
+    const { elementList, range } = this.control.mergeControl(context)
     const control = this.element.control!
     const newCodes = code?.split(this.VALUE_DELIMITER) || []
     // 缓存旧值

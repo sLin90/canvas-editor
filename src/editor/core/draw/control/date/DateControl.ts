@@ -197,8 +197,7 @@ export class DateControl implements IControlInstance {
     ) {
       return
     }
-    const elementList = context.elementList || this.control.getElementList()
-    const range = context.range || this.control.getRange()
+    const { elementList, range } = this.control.mergeControl(context)
     // 样式赋值元素-默认值的第一个字符样式，否则取默认样式
     const valueElement = this.getValue(context)[0]
     const styleElement = valueElement
